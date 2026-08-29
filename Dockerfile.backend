@@ -6,23 +6,30 @@
 # -----------------------------------------------------------------------------
 # Stage: base (system + uv)
 # -----------------------------------------------------------------------------
-FROM registry.access.redhat.com/ubi10/python-314-minimal AS base
+# Debian (bookworm) glibc is compiled against the x86-64-baseline ISA level
+# with full fallback dispatch, unlike the Red Hat/UBI glibc that hard-fails
+# with "Fatal glibc error: CPU does not support x86-64-v3" on pre-AVX2 (v2)
+# CPUs such as Sandy Bridge. Using a Debian base lets the image run on v2 hosts.
+FROM python:3.14-slim-bookworm AS base
 
-# Install system dependencies using microdnf (UBI minimal package manager)
-USER 0
+# Install system dependencies using apt (Debian package manager)
+USER root
 
+# Configure apt: use a reachable Debian mirror over HTTPS and force IPv4.
+# The default deb.debian.org (Fastly) endpoint is unreachable from restricted
+# build networks, so we point at mirrors.cloud.tencent.com instead.
+RUN printf 'Types: deb\nURIs: https://mirrors.cloud.tencent.com/debian\nSuites: bookworm bookworm-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: https://mirrors.cloud.tencent.com/debian-security\nSuites: bookworm-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' > /etc/apt/sources.list.d/debian.sources \
+    && printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99force-ipv4
 
-RUN microdnf update -y \
-    && microdnf install -y \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     openssl \
     tar \
     gzip \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum \
+    && rm -rf /var/lib/apt/lists/* \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && python -m ensurepip --upgrade \
     && python -m pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1"
 
 ENV PATH="$PATH:/root/.local/bin" \
@@ -34,15 +41,15 @@ ENV PATH="$PATH:/root/.local/bin" \
 # -----------------------------------------------------------------------------
 FROM base AS builder
 
-# Build-time deps only (not in final image)
-RUN microdnf install -y \
+# Build-time deps only (not in final image); apt sources inherited from base stage
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
     git \
     gcc \
-    gcc-c++ \
+    g++ \
     make \
-    python3.14-devel \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -71,20 +78,20 @@ COPY openrag-documents/ ./openrag-documents/
 # -----------------------------------------------------------------------------
 # Stage: runtime (minimal image)
 # -----------------------------------------------------------------------------
-FROM registry.access.redhat.com/ubi10/python-314-minimal AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 # Install runtime dependencies
-USER 0
+USER root
 
-RUN microdnf update -y \
-    && microdnf install -y \
+# Use the same reachable Debian mirror as the base stage (see base).
+RUN printf 'Types: deb\nURIs: https://mirrors.cloud.tencent.com/debian\nSuites: bookworm bookworm-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: https://mirrors.cloud.tencent.com/debian-security\nSuites: bookworm-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' > /etc/apt/sources.list.d/debian.sources \
+    && printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99force-ipv4 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
     ca-certificates \
     openssl \
-    shadow-utils \
     util-linux \
-    && microdnf clean all \
-    && rm -rf /var/cache/yum \
-    && python -m ensurepip --upgrade \
+    && rm -rf /var/lib/apt/lists/* \
     && python -m pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1"
 
 # Create a non-root user/group.
