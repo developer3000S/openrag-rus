@@ -64,6 +64,16 @@ To get started with OpenRAG, see the installation guides in the OpenRAG document
 * [Install the OpenRAG Python package](https://docs.openr.ag/install-options)
 * [Deploy self-managed services with Docker or Podman](https://docs.openr.ag/docker)
 
+### Local Docker deployment
+
+For a local Docker Compose deployment with a single command, run the helper script:
+
+```bash
+./start-docker.sh
+```
+
+The script injects default values for the required environment variables (OpenSearch password, `OPENRAG_ENCRYPTION_KEY`, Langflow superuser), publishes the backend on `http://localhost:${OPENRAG_BACKEND_PORT}` (default `8001` when `8000` is already in use) via the `docker-compose.backend-port.yml` override, and builds or re-tags locally built Debian-based images that also run on older CPUs without the `x86-64-v3` instruction set.
+
 ## ✨ Quick Start Workflow
 
 <div align="center">

@@ -69,9 +69,13 @@ Use this installation method if you don't want to [use an OpenRAG terminal sessi
 The OpenRAG Docker Compose files pull values from your `.env` file to configure the OpenRAG containers.
 The following variables are required or recommended:
 
-   * **`OPENSEARCH_PASSWORD` (Required)**: Sets the OpenSearch administrator password. It must adhere to the [OpenSearch password complexity requirements](https://docs.opensearch.org/latest/security/configuration/demo-configuration/#setting-up-a-custom-admin-password).
+   * **`OPENSEARCH_PASSWORD` (Required)**: Sets the OpenSearch administrator password. It must adhere to the [OpenSearch password complexity requirements](https://docs.opensearch.org/latest/security/configuration/demo-configuration/#setting-up-a-custom-admin-password). The base `docker-compose.yml` doesn't publish the backend port to the host, so if you want direct access to the backend (for example, the [SDK or API](/reference/api-sdk-overview)), layer the `docker-compose.backend-port.yml` override, which publishes it on the port set by `OPENRAG_BACKEND_PORT`:
 
-   * **`LANGFLOW_SUPERUSER`**: The username for the Langflow administrator user. If `LANGFLOW_SUPERUSER` isn't set, then the default value is `admin`.
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.backend-port.yml up -d
+   ```
+
+   * **`LANGFLOW_SUPERUSER`**: The username for the Langflow administrator user. If `LANGFLOW_SUPERUSER` isn't set, then the default value is `langflow`.
 
    * **`LANGFLOW_SUPERUSER_PASSWORD` (Strongly recommended)**: Sets the Langflow administrator password, and determines the Langflow server's default authentication mode. If `LANGFLOW_SUPERUSER_PASSWORD` isn't set, then the Langflow server starts without authentication enabled. For more information, see [Langflow settings](/reference/configuration#langflow-settings).
 
@@ -247,6 +251,14 @@ If the containers fail to start with an image pull error, see [Container image p
    <PartialGpuModeTip />
    :::
 
+   :::note
+   For local deployments, this repository also includes the `start-docker.sh` helper script. It is designed for hosts where the default backend port `8000` is already in use (the script serves the backend at `http://localhost:${OPENRAG_BACKEND_PORT}`, defaulting to `8001`) or whose CPU doesn't support the `x86-64-v3` instruction set, such as older processors without `AVX2`. The script builds or re-tags locally built Debian-based images that run on those hosts, injects default values for the required environment variables (including a generated `OPENRAG_ENCRYPTION_KEY` and a compliant `OPENSEARCH_PASSWORD`), and then starts the stack with the `docker-compose.backend-port.yml` override:
+
+   ```bash
+   ./start-docker.sh
+   ```
+   :::
+
 4. Wait for the OpenRAG containers to start, and then confirm that all containers are running:
 
    ```bash title="Docker"
@@ -268,6 +280,7 @@ If the containers fail to start with an image pull error, see [Container image p
    | OpenSearch Dashboards | http://localhost:5601 | OpenSearch database administration interface. |
 
    When the containers are running, you can access your OpenRAG services at their addresses.
+   If you started the stack with `start-docker.sh`, the OpenRAG Backend is published on the port set by `OPENRAG_BACKEND_PORT` (default `8001`) instead of `8000`.
 
 5. Access the OpenRAG frontend at `http://localhost:3000`, and then continue with the [application onboarding process](#application-onboarding).
 
