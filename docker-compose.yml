@@ -54,7 +54,8 @@ services:
       dockerfile: Dockerfile.backend
     container_name: ${COMPOSE_PROJECT_NAME:-openrag}-backend
     depends_on:
-      - langflow
+      langflow:
+        condition: service_healthy
     environment:
       - OPENSEARCH_HOST=${OPENSEARCH_HOST:-opensearch}
       - LANGFLOW_URL=http://langflow:7860
@@ -202,6 +203,15 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-openrag}-langflow
     ports:
       - "${LANGFLOW_PORT:-7860}:7860"
+    healthcheck:
+      # The langflow image ships no curl/wget; python's urllib raises on any
+      # non-200 so a non-ready service fails the check. start_period covers the
+      # slow dynamic component import the backend's own wait_for_langflow polls.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7860/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     volumes:
       - ${OPENRAG_FLOWS_PATH:-./flows}:/app/flows:U,z
       - ${LANGFLOW_DATA_PATH:-./langflow-data}:/app/langflow-data:U,z
