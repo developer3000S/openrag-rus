@@ -7,6 +7,8 @@ interface ConfigValues {
   /** When true, clear the provider key (e.g. environment-key mode). */
   clearApiKey?: boolean;
   endpoint?: string;
+  /** When true, clear the provider endpoint (e.g. environment-credentials mode). */
+  clearEndpoint?: boolean;
   languageModel?: string;
   embeddingModel?: string;
 }
@@ -22,6 +24,20 @@ function resolveApiKey(
   // Explicit empty clears a typed key; omit (undefined) to reuse previous.
   if (apiKey !== undefined) {
     return apiKey;
+  }
+  return previous || "";
+}
+
+function resolveEndpoint(
+  endpoint: string | undefined,
+  clearEndpoint: boolean | undefined,
+  previous: string | undefined,
+): string {
+  if (clearEndpoint) {
+    return "";
+  }
+  if (endpoint !== undefined) {
+    return endpoint;
   }
   return previous || "";
 }
@@ -57,6 +73,19 @@ export function useUpdateSettings(
         );
       }
 
+      if (provider === "omniroute") {
+        updatedSettings.omniroute_api_key = resolveApiKey(
+          config.apiKey,
+          config.clearApiKey,
+          prev.omniroute_api_key,
+        );
+        updatedSettings.omniroute_endpoint = resolveEndpoint(
+          config.endpoint,
+          config.clearEndpoint,
+          prev.omniroute_endpoint,
+        );
+      }
+
       // Map provider-specific endpoints
       if (config.endpoint && provider === "ollama") {
         updatedSettings.ollama_endpoint = config.endpoint;
@@ -69,6 +98,7 @@ export function useUpdateSettings(
     config.apiKey,
     config.clearApiKey,
     config.endpoint,
+    config.clearEndpoint,
     config.languageModel,
     config.embeddingModel,
     setSettings,

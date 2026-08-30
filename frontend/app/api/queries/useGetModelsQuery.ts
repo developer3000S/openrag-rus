@@ -29,6 +29,13 @@ export interface OllamaModelsParams {
   endpoint?: string;
 }
 
+export interface OmnirouteModelsParams {
+  endpoint?: string;
+  apiKey?: string;
+  /** When true, omit endpoint/api_key so the backend uses configured/env credentials. */
+  useEnvCredentials?: boolean;
+}
+
 async function throwModelsFetchError(
   response: Response,
   fallback: string,
@@ -98,6 +105,57 @@ export const useGetOllamaModelsQuery = (
           return (await response.json()) as ModelsResponse;
         }
         return throwModelsFetchError(response, "Failed to fetch Ollama models");
+      },
+      staleTime: 0,
+      gcTime: 0,
+      retry: false,
+      ...options,
+    },
+    queryClient,
+  );
+};
+
+export const useGetOmnirouteModelsQuery = (
+  params?: OmnirouteModelsParams,
+  options?: Omit<UseQueryOptions<ModelsResponse>, "queryKey" | "queryFn">,
+) => {
+  const queryClient = useQueryClient();
+  const useEnvCredentials = !!params?.useEnvCredentials;
+  const endpoint = useEnvCredentials ? "" : params?.endpoint || "";
+  const apiKey = useEnvCredentials ? "" : params?.apiKey || "";
+
+  return useQuery(
+    {
+      queryKey: [
+        "models",
+        "omniroute",
+        useEnvCredentials,
+        endpoint,
+        apiKey,
+      ] as const,
+      queryFn: async (): Promise<ModelsResponse> => {
+        const body: { endpoint?: string; api_key?: string } = {};
+        if (!useEnvCredentials) {
+          if (endpoint) {
+            body.endpoint = endpoint;
+          }
+          if (apiKey) {
+            body.api_key = apiKey;
+          }
+        }
+
+        const response = await fetch("/api/models/omniroute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (response.ok) {
+          return (await response.json()) as ModelsResponse;
+        }
+        return throwModelsFetchError(
+          response,
+          "Failed to fetch Omniroute models",
+        );
       },
       staleTime: 0,
       gcTime: 0,

@@ -665,7 +665,12 @@ async def _test_litellm_provider(
     model = embedding_model or llm_model
     if not model:
         raise ValueError("A model is required to validate the provider")
-    litellm_model = f"{provider}/{model}"
+    # Omniroute is an OpenAI-compatible proxy. LiteLLM routes any `openai/<name>`
+    # to the `api_base` override, so use that prefix instead of the provider name.
+    if provider == "omniroute":
+        litellm_model = f"openai/{model}"
+    else:
+        litellm_model = f"{provider}/{model}"
     if embedding_model:
         await litellm.aembedding(
             model=litellm_model,

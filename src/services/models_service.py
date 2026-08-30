@@ -162,6 +162,22 @@ class ModelsService:
                     except Exception as e:
                         logger.debug(f"Could not fetch Ollama models for registry: {str(e)}")
 
+                # OmniRoute
+                if hasattr(config.providers, "omniroute") and config.providers.omniroute.endpoint:
+                    try:
+                        endpoint = (
+                            config.providers.omniroute.endpoint
+                            or getattr(config.providers.omniroute, "api_base", None)
+                        )
+                        api_key = config.providers.omniroute.api_key
+                        if endpoint and api_key:
+                            res = await self.get_omniroute_models(
+                                endpoint, api_key, update_index=False
+                            )
+                            self.add_models(res, "omniroute", new_registry)
+                    except Exception as e:
+                        logger.debug(f"Could not fetch OmniRoute models for registry: {str(e)}")
+
                 from services.model_catalog import catalog
 
                 catalog_by_provider = {entry["key"]: entry for entry in catalog()["providers"]}
@@ -474,5 +490,96 @@ class ModelsService:
 
         except Exception as e:
             logger.error(f"Error fetching Ollama models: {str(e)}")
+            raise
+
+    async def get_omniroute_models(
+        self,
+        endpoint: str,
+        api_key: str,
+        update_index: bool = True,
+    ) -> dict[str, list[dict[str, str]]]:
+        """Fetch available models from an OMNIROUTE-compatible OpenAI-style endpoint.
+
+        OMNIROUTE exposes an OpenAI-compatible /v1/models inventory, so this
+        reuses the OpenAI client path and filtering rules.
+        """
+        try:
+            from utils.container_utils import transform_localhost_url
+
+            base_url = transform_localhost_url(endpoint).rstrip("/")
+            url = f"{base_url}/models"
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+
+            response = await _http_request_with_retry(
+                "GET", url, headers=headers, timeout=30.0
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                models = data.get("data", [])
+
+                language_models: list[dict[str, str]] = []
+                embedding_models: list[dict[str, str]] = []
+
+                for model in models:
+                    model_id = model.get("id", "")
+                    if not model_id:
+                        continue
+                    if is_openai_embedding_model(model_id):
+                        embedding_models.append(
+                            {
+                                "value": model_id,
+                                "label": model_id,
+                                "default": False,
+                            }
+                        )
+                    elif is_openai_language_model(model_id):
+                        language_models.append(
+                            {
+                                "value": model_id,
+                                "label": model_id,
+                                "default": False,
+                                "supports_images": self._openai_supports_images(model_id),
+                            }
+                        )
+
+                if not language_models:
+                    language_models.append(
+                        {
+                            "value": "free-stack",
+                            "label": "free-stack",
+                            "default": True,
+                        }
+                    )
+
+                language_models.sort(key=lambda x: (not x.get("default", False), x["value"]))
+                embedding_models.sort(key=lambda x: (not x.get("default", False), x["value"]))
+
+                logger.info(
+                    "OMNIROUTE endpoint validated: %d language, %d embedding models",
+                    len(language_models),
+                    len(embedding_models),
+                )
+
+                result = {
+                    "language_models": language_models,
+                    "embedding_models": embedding_models,
+                }
+
+                if update_index:
+                    await self.add_models_to_registry(result, "omniroute")
+
+                return result
+            else:
+                raise Exception(
+                    format_provider_error_message(_extract_error_details(response))
+                )
+
+        except Exception as e:
+            logger.error(f"Error fetching OMNIROUTE models: {str(e)}")
             raise
 

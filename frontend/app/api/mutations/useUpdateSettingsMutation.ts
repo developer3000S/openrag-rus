@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { formatProviderErrorMessage } from "@/lib/chat-stream-errors";
-import { useGetCurrentProviderModelsQuery } from "../queries/useGetModelsQuery";
+import { useGetModelCatalogQuery } from "../queries/useGetModelsQuery";
 import type { Settings } from "../queries/useGetSettingsQuery";
 
 export interface UpdateSettingsRequest {
@@ -119,7 +119,7 @@ export const useUpdateSettingsMutation = (
   >,
 ) => {
   const queryClient = useQueryClient();
-  const { refetch: refetchModels } = useGetCurrentProviderModelsQuery();
+  const { refetch: refetchModels } = useGetModelCatalogQuery();
 
   return useMutation({
     mutationFn: updateSettings,

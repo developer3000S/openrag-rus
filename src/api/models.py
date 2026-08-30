@@ -36,6 +36,11 @@ class OpenAIBody(BaseModel):
     api_key: str | None = None
 
 
+class OmnirouteBody(BaseModel):
+    endpoint: str | None = None
+    api_key: str | None = None
+
+
 def _models_error_response(exc: Exception) -> JSONResponse:
     """Map model-route failures to client (400) vs upstream (502) vs server (500).
 
@@ -117,6 +122,48 @@ async def get_ollama_models(
         return JSONResponse(models)
     except Exception as e:
         logger.error(f"Failed to get Ollama models: {str(e)}")
+        return _models_error_response(e)
+
+
+async def get_omniroute_models(
+    body: OmnirouteBody | None = None,
+    models_service=Depends(get_models_service),
+    user: User = Depends(require_permission("providers:read")),
+):
+    """Get available OMNIROUTE models"""
+    try:
+        endpoint = body.endpoint if body else None
+        api_key = body.api_key if body else None
+
+        if not endpoint or not api_key:
+            try:
+                config = get_openrag_config()
+                if not endpoint and hasattr(config.providers, "omniroute"):
+                    endpoint = getattr(config.providers.omniroute, "endpoint", None) or getattr(
+                        config.providers.omniroute, "api_base", None
+                    )
+                if not api_key and hasattr(config.providers, "omniroute"):
+                    api_key = config.providers.omniroute.api_key
+            except Exception as e:
+                logger.error(f"Failed to get omniroute config: {e}")
+
+        if not endpoint:
+            return JSONResponse(
+                {"error": "OMNIROUTE endpoint is required either in request body or in configuration"},
+                status_code=400,
+            )
+        if not api_key:
+            return JSONResponse(
+                {"error": "OMNIROUTE API key is required either in request body or in configuration"},
+                status_code=400,
+            )
+
+        models = await models_service.get_omniroute_models(
+            endpoint=endpoint, api_key=api_key
+        )
+        return JSONResponse(models)
+    except Exception as e:
+        logger.error(f"Failed to get OMNIROUTE models: {str(e)}")
         return _models_error_response(e)
 
 

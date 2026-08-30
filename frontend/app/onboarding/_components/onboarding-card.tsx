@@ -23,6 +23,7 @@ import {
 } from "@/app/settings/_helpers/model-helpers";
 import { useDoclingHealth } from "@/components/docling-health-banner";
 import OllamaLogo from "@/components/icons/ollama-logo";
+import OmnirouteLogo from "@/components/icons/omniroute-logo";
 import OpenAILogo from "@/components/icons/openai-logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +42,7 @@ import { formatProviderErrorMessage } from "@/lib/chat-stream-errors";
 import { cn } from "@/lib/utils";
 import { AnimatedProviderSteps } from "./animated-provider-steps";
 import { OllamaOnboarding } from "./ollama-onboarding";
+import { OmnirouteOnboarding } from "./omniroute-onboarding";
 import { OpenAIOnboarding } from "./openai-onboarding";
 import { TabTrigger } from "./tab-trigger";
 
@@ -110,6 +112,12 @@ const OnboardingCard = ({
         ) {
           setModelProvider("ollama");
           break;
+        } else if (
+          provider === "omniroute" &&
+          currentSettings.providers.omniroute?.endpoint
+        ) {
+          setModelProvider("omniroute");
+          break;
         }
       }
     }
@@ -134,6 +142,8 @@ const OnboardingCard = ({
       return currentSettings.providers.openai?.configured === true;
     } else if (provider === "ollama") {
       return currentSettings.providers.ollama?.configured === true;
+    } else if (provider === "omniroute") {
+      return currentSettings.providers.omniroute?.configured === true;
     }
     return false;
   };
@@ -154,6 +164,8 @@ const OnboardingCard = ({
     // Provider-specific fields will be set by provider components
     openai_api_key: "",
     ollama_endpoint: "",
+    omniroute_endpoint: "",
+    omniroute_api_key: "",
   });
 
   const [currentStep, setCurrentStep] = useState<number | null>(
@@ -438,6 +450,20 @@ const OnboardingCard = ({
       onboardingData.openai_api_key = settings.openai_api_key;
     } else if (currentProvider === "ollama" && settings.ollama_endpoint) {
       onboardingData.ollama_endpoint = settings.ollama_endpoint;
+    } else if (currentProvider === "omniroute") {
+      const credentials: Record<string, string> = {};
+      if (settings.omniroute_endpoint) {
+        credentials.api_base = settings.omniroute_endpoint;
+      }
+      if (settings.omniroute_api_key) {
+        credentials.api_key = settings.omniroute_api_key;
+      }
+      if (Object.keys(credentials).length > 0) {
+        onboardingData.provider_credentials = {
+          ...(onboardingData.provider_credentials || {}),
+          omniroute: credentials,
+        };
+      }
     }
 
     trackButton({
@@ -564,6 +590,39 @@ const OnboardingCard = ({
                       </TabTrigger>
                     </TabsTrigger>
                   )}
+                  <TabsTrigger
+                    value="omniroute"
+                    data-testid={`omniroute-${isEmbedding ? "embedding" : "llm"}-tab`}
+                    className={cn(
+                      error &&
+                        modelProvider === "omniroute" &&
+                        "data-[state=active]:border-destructive",
+                    )}
+                  >
+                    <TabTrigger
+                      selected={modelProvider === "omniroute"}
+                      isLoading={isLoadingModels}
+                    >
+                      <div
+                        className={cn(
+                          "flex items-center justify-center gap-2 w-8 h-8 rounded-none border",
+                          modelProvider === "omniroute"
+                            ? "bg-white"
+                            : "bg-muted",
+                        )}
+                      >
+                        <OmnirouteLogo
+                          className={cn(
+                            "w-4 h-4 shrink-0",
+                            modelProvider === "omniroute"
+                              ? "text-black"
+                              : "text-muted-foreground",
+                          )}
+                        />
+                      </div>
+                      Omniroute
+                    </TabTrigger>
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="openai">
                   <OpenAIOnboarding
@@ -591,6 +650,23 @@ const OnboardingCard = ({
                     />
                   </TabsContent>
                 )}
+                <TabsContent value="omniroute">
+                  <OmnirouteOnboarding
+                    setSettings={setSettings}
+                    isEmbedding={isEmbedding}
+                    hasEnvCredentials={
+                      currentSettings?.providers?.omniroute?.has_api_key ===
+                        true ||
+                      !!currentSettings?.providers?.omniroute?.endpoint
+                    }
+                    alreadyConfigured={
+                      providerAlreadyConfigured && modelProvider === "omniroute"
+                    }
+                    existingEndpoint={
+                      currentSettings?.providers?.omniroute?.endpoint
+                    }
+                  />
+                </TabsContent>
               </Tabs>
 
               <Tooltip>

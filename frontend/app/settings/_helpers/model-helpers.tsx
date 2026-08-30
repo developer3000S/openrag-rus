@@ -14,7 +14,11 @@ export const LLM_PROVIDER_ORDER: ModelProvider[] = [
 ];
 
 // Preferred auto-select order for the embedding onboarding step
-export const EMBEDDING_PROVIDER_ORDER: ModelProvider[] = ["openai", "ollama"];
+export const EMBEDDING_PROVIDER_ORDER: ModelProvider[] = [
+  "openai",
+  "ollama",
+  "omniroute",
+];
 
 // Providers unavailable in cloud (IBM) deployments
 export const CLOUD_EXCLUDED_PROVIDERS: ModelProvider[] = ["ollama"];

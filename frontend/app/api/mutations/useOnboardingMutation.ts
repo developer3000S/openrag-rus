@@ -18,6 +18,8 @@ export interface OnboardingVariables {
   // Provider-specific credentials
   openai_api_key?: string;
   ollama_endpoint?: string;
+  omniroute_endpoint?: string;
+  omniroute_api_key?: string;
   provider_credentials?: Record<string, Record<string, string>>;
 }
 

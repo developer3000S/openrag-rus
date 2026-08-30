@@ -430,6 +430,9 @@ def register_internal_routes(app: FastAPI):
         "/models/ollama", models.get_ollama_models, methods=["GET"], tags=["internal"]
     )
     app.add_api_route(
+        "/models/omniroute", models.get_omniroute_models, methods=["POST"], tags=["internal"]
+    )
+    app.add_api_route(
         "/models/catalog", models.get_model_catalog, methods=["GET"], tags=["internal"]
     )
 
