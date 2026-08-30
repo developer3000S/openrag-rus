@@ -52,3 +52,4 @@ documents/docling.pdf
 /opensearch-data-new-lf
 /opensearch-data2
 *.db
+models/

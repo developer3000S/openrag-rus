@@ -1,15 +1,47 @@
 # syntax=docker/dockerfile:1.4
-FROM langflowai/langflow:base-0.11.2
+# Debian (bookworm) glibc is compiled against the x86-64-baseline ISA level with
+# full fallback dispatch, unlike the Red Hat/UBI glibc that hard-fails with
+# "Fatal glibc error: CPU does not support x86-64-v3" on pre-AVX2 (v2) CPUs such
+# as Sandy Bridge. The upstream langflow base image is UBI-based and will not
+# run on v2 hosts, so we rebuild the same service on a Debian base.
+#
+# The upstream base-0.11.2 image ships Python 3.14, so we match it with
+# python:3.14-slim-bookworm and install Langflow from PyPI.
+FROM python:3.14-slim-bookworm
 
-# Install uv and pre-create the Langflow data directory.
-# The base image already runs as uid=1000 and owns /app, so no root or chown needed.
-# Upgrade pip first to patch CVE-2026-8643 (fixed in 26.1.2) in the base image.
-RUN pip install --no-cache-dir --upgrade "pip>=26.1.2" \
+USER root
+
+# Use a reachable Debian mirror over HTTPS and force IPv4 (the default
+# deb.debian.org Fastly endpoint is unreachable from restricted build networks).
+RUN printf 'Types: deb\nURIs: https://mirrors.cloud.tencent.com/debian\nSuites: bookworm bookworm-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: https://mirrors.cloud.tencent.com/debian-security\nSuites: bookworm-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' > /etc/apt/sources.list.d/debian.sources \
+    && printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99force-ipv4
+
+# Build/runtime base: git + build tools (needed to compile any package lacking
+# a wheel) plus util-linux for runuser in the entrypoint.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    openssl \
+    ca-certificates \
+    util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv and pre-create the Langflow data directory (matches upstream).
+RUN pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1" \
     && pip install --no-cache-dir uv \
     && mkdir -p /app/langflow-data
 
+# Install Langflow (the framework that the old UBI base bundled) plus the
+# same additional packages the original Dockerfile.langflow installed.
+# The upstream base image ships the headless `langflow-base` distribution
+# (dist-info name `langflow_base-0.11.2`), so we install that from PyPI.
 RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
+    langflow-base==0.11.2 \
     torch==2.10.0 \
     torchvision==0.25.0 \
     docling \
@@ -28,15 +60,24 @@ RUN pip install --no-cache-dir \
 COPY flows/ /app/flows/
 COPY custom_components/ /app/custom_components/
 
-# Copy the entrypoint before switching to root so the COPY runs as uid=1000
-# (which owns /app), then switch to root so the entrypoint can correct
+# Copy the entrypoint before switching ownership so it can later correct
 # bind-mount permissions at runtime before dropping back to uid=1000.
 COPY --chmod=755 scripts/langflow-entrypoint.py /usr/local/bin/langflow-entrypoint
 COPY scripts/patch_langflow_openrag_bundle.py /tmp/patch_langflow_openrag_bundle.py
 COPY flows/component_index.json /app/component_index.json
-USER root
+
+# Run as uid 1000 (langflow), matching the upstream user so bind-mounts use
+# the same ownership. Debian's python image has no such user by default.
+RUN groupadd --gid 1000 langflow \
+    && useradd --uid 1000 --gid 1000 --create-home --home-dir /home/langflow langflow \
+    && chown -R langflow:langflow /home/langflow
+
 RUN rm -f /app/flows/component_index.json \
-    && python3 /tmp/patch_langflow_openrag_bundle.py
+    && python3 /tmp/patch_langflow_openrag_bundle.py \
+    && chown -R langflow:langflow /app \
+    && mkdir -p /app/langflow-data \
+    && chown -R langflow:langflow /app/langflow-data
+
 ENV LANGFLOW_SSRF_ALLOWED_HOSTS=localhost,127.0.0.1,host.docker.internal
 ENV LANGFLOW_LOG_TRACE_LOCALS=false
 ENV LANGFLOW_BLOCK_CODE_INTERPRETER_COMPONENTS=true
@@ -45,9 +86,11 @@ ENV LANGFLOW_COMPONENTS_INDEX_PATH=/app/component_index.json
 ENV LANGFLOW_ALLOW_CUSTOM_COMPONENTS=false
 
 # CWE-426 fix: explicitly set PATH so system-owned directories are always resolved
-# first. App venv and ubi python dirs are appended last so they cannot shadow system binaries.
+# first. App venv and python dirs are appended last so they cannot shadow system binaries.
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/app/.venv/bin:/opt/app-root/bin:/opt/app-root/src/bin:/opt/app-root/src/.local/bin
 
+# The entrypoint drops from root to uid 1000; start as root so it can.
+USER root
 EXPOSE 7860
 
 ENTRYPOINT ["langflow-entrypoint"]

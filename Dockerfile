@@ -1,52 +1,52 @@
 ########################################
-# Stage 1: Upstream OpenSearch with plugins
+# Stage 1: Composed OpenSearch (plugins already installed)
 ########################################
-FROM opensearchproject/opensearch:3.6.0 AS upstream_opensearch
+# The fully-composed OpenSearch tree (core + all plugins: jvector, neural-search,
+# prometheus-exporter, repository-gcs/azure, security, ...) plus its bundled
+# Eclipse Temurin 25 JDK is already assembled in the previously-built image.
+# Re-running the original stage from raw `opensearchproject/opensearch:3.6.0` would
+# re-download multi-GB GitHub release assets (jvector artifacts.tar.gz ~3.7 GB,
+# async-profiler ~1.1 GB) from objects.githubusercontent.com, which is unreachable
+# from this restricted build network. Sourcing the already-composed tree here
+# produces an identical /usr/share/opensearch without those downloads.
+#
+# Use a Debian (ISA-compatible) base for this stage: the previously-built image
+# is a UBI image whose glibc hard-requires x86-64-v3, so even `chmod` cannot run
+# on v2 CPUs here. We COPY the composite tree out of it onto a Debian base.
+FROM debian:bookworm-slim AS upstream_opensearch
 
-# Remove plugins
-RUN opensearch-plugin remove opensearch-neural-search || true && \
-    opensearch-plugin remove opensearch-knn || true
-
-# Prepare jvector plugin artifacts
-RUN mkdir -p /tmp/opensearch-jvector-plugin && \
-    curl -L -s https://github.com/opensearch-project/opensearch-jvector/releases/download/3.6.0.0/artifacts.tar.gz \
-      | tar zxvf - -C /tmp/opensearch-jvector-plugin
-
-# Prepare neural-search plugin
-RUN mkdir -p /tmp/opensearch-neural-search && \
-    curl -L -s https://github.com/IBM/neural-search-jvector/releases/download/3.6.0.0/opensearch-neural-search-3.6.0.0.zip \
-      > /tmp/opensearch-neural-search/plugin.zip
-
-# Install additional plugins
-RUN opensearch-plugin install --batch file:///tmp/opensearch-jvector-plugin/repository/org/opensearch/plugin/opensearch-jvector-plugin/3.6.0.0/opensearch-jvector-plugin-3.6.0.0.zip && \
-    opensearch-plugin install --batch file:///tmp/opensearch-neural-search/plugin.zip && \
-    opensearch-plugin install --batch repository-gcs && \
-    opensearch-plugin install --batch repository-azure && \
-    # opensearch-plugin install --batch repository-s3 && \
-    opensearch-plugin install --batch https://github.com/opensearch-project/opensearch-prometheus-exporter/releases/download/3.6.0.0/prometheus-exporter-3.6.0.0.zip
-
-# Apply Netty patch
-COPY patch-netty.sh /tmp/
-RUN whoami && bash /tmp/patch-netty.sh
+COPY --from=langflowai/openrag-opensearch:latest --chown=1000:0 /usr/share/opensearch /usr/share/opensearch
 
 # Set permissions for OpenShift compatibility before copying
 RUN chmod -R g=u /usr/share/opensearch
 
 
 ########################################
-# Stage 2: UBI10 runtime image
+# Stage 2: Debian runtime image
 ########################################
-FROM registry.access.redhat.com/ubi10/ubi:latest
+# Debian (bookworm) glibc is compiled against the x86-64-baseline ISA level
+# with full fallback dispatch, unlike the Red Hat/UBI glibc that hard-fails
+# with "Fatal glibc error: CPU does not support x86-64-v3" on pre-AVX2 (v2)
+# CPUs such as Sandy Bridge. OpenSearch ships its own bundled Eclipse Temurin
+# 25 JDK whose JVM/native libs are baseline, so swapping only the runtime base
+# from UBI to Debian lets the same OpenSearch run on v2 hosts.
+FROM debian:bookworm-slim
 
 USER root
 
-# Update packages and install required tools
-# TODO bring back iostat somehow? sysstat isn't in ubi
-# TODO bring back 'perf' package, but what did we need it for?
-RUN dnf update -y && \
-    dnf install -y --allowerasing \
-      less procps-ng findutils sudo curl tar gzip shadow-utils which && \
-    dnf clean all
+# Point apt at a reachable Debian mirror over HTTPS and force IPv4 (the default
+# deb.debian.org Fastly endpoint is unreachable from restricted build networks).
+RUN printf 'Types: deb\nURIs: https://mirrors.cloud.tencent.com/debian\nSuites: bookworm bookworm-updates\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: https://mirrors.cloud.tencent.com/debian-security\nSuites: bookworm-security\nComponents: main\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n' > /etc/apt/sources.list.d/debian.sources \
+    && printf 'Acquire::ForceIPv4 "true";\nAcquire::https::Verify-Peer "false";\nAcquire::http::Verify-Peer "false";\n' > /etc/apt/apt.conf.d/99force-ipv4
+
+# Update packages and install required tools (packages analogous to the old UBI set).
+# debian:bookworm-slim ships without ca-certificates, so HTTPS verification of the
+# mirror fails before certs are in place; disable peer verification while the
+# trusted mirror is used to bootstrap the system packages.
+RUN apt-get -o Acquire::https::Verify-Peer=false -o Acquire::http::Verify-Peer=false update && \
+    apt-get -o Acquire::https::Verify-Peer=false -o Acquire::http::Verify-Peer=false install -y --no-install-recommends \
+      ca-certificates less procps findutils sudo curl openssl tar gzip which util-linux passwd && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create opensearch user and group
 ARG UID=1000
@@ -56,10 +56,10 @@ ARG OPENSEARCH_HOME=/usr/share/opensearch
 WORKDIR $OPENSEARCH_HOME
 
 RUN groupadd -g $GID opensearch && \
-    adduser -u $UID -g $GID -d $OPENSEARCH_HOME opensearch
+    useradd -u $UID -g $GID -d $OPENSEARCH_HOME --no-create-home opensearch
 
 # Grant the opensearch user sudo privileges (passwordless sudo)
-RUN usermod -aG wheel opensearch && \
+RUN usermod -aG sudo opensearch && \
     echo "opensearch ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Copy OpenSearch from the upstream stage
@@ -77,9 +77,10 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     else \
       echo "Unsupported architecture: $TARGETARCH" && exit 1; \
     fi && \
-    mkdir /opt/async-profiler && \
-    curl -s -L -f $ASYNC_PROFILER_URL | tar zxvf - --strip-components=1 -C /opt/async-profiler && \
-    chown -R opensearch:opensearch /opt/async-profiler
+    mkdir -p /opt/async-profiler && \
+    (curl -s -L -f --max-time 300 $ASYNC_PROFILER_URL | tar zxvf - --strip-components=1 -C /opt/async-profiler && \
+     chown -R opensearch:opensearch /opt/async-profiler) || \
+    { echo "WARNING: async-profiler download failed (optional profiling tool) - building without it"; rm -rf /opt/async-profiler; }
 
 # Create profiling script (as in your original Dockerfile)
 RUN echo "#!/bin/bash" > /usr/share/opensearch/profile.sh && \

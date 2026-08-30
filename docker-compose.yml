@@ -8,6 +8,7 @@ services:
     environment:
       - discovery.type=single-node
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
       - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
       - OPENRAG_BACKEND_PORT=${OPENRAG_BACKEND_PORT:-8000}
       - OPENRAG_BACKEND_HOST=${OPENRAG_BACKEND_HOST:-openrag-backend}
@@ -206,6 +207,10 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - LANGFLOW_ALLOW_CUSTOM_COMPONENTS=${LANGFLOW_ALLOW_CUSTOM_COMPONENTS:-false}
+      # Superuser credentials are required by langflow (it aborts startup with
+      # "Username and password must be set" when they are missing).
+      - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-langflow}
+      - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD}
       # Prefer the bind-mounted index so `scripts/update_openrag_component_index.py`
       # takes effect on `docker compose restart langflow` without an image rebuild.
       - LANGFLOW_COMPONENTS_INDEX_PATH=/app/flows/component_index.json

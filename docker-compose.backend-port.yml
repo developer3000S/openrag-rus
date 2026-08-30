@@ -1,0 +1,9 @@
+# Machine-specific override: publish the OpenRAG backend to a host port.
+# The base docker-compose.yml deliberately does not map the backend port to the
+# host (it's reached through the frontend on port 3000 over the compose network).
+# On this machine we want direct http://localhost:${OPENRAG_BACKEND_PORT} access,
+# so we add a host port binding here.
+services:
+  openrag-backend:
+    ports:
+      - "${OPENRAG_BACKEND_PORT:-8000}:8000"
