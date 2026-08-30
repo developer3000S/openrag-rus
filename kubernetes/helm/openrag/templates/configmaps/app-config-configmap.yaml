@@ -23,8 +23,6 @@ data:
       picture_descriptions: {{ .Values.appConfig.knowledge.pictureDescriptions }}
       table_structure: {{ .Values.appConfig.knowledge.tableStructure }}
     providers:
-      anthropic:
-        configured: {{ .Values.llmProviders.anthropic.enabled }}
       ollama:
         configured: {{ .Values.llmProviders.ollama.enabled }}
         {{- if .Values.llmProviders.ollama.endpoint }}
@@ -32,8 +30,3 @@ data:
         {{- end }}
       openai:
         configured: {{ .Values.llmProviders.openai.enabled }}
-      watsonx:
-        configured: {{ .Values.llmProviders.watsonx.enabled }}
-        {{- if .Values.llmProviders.watsonx.endpoint }}
-        endpoint: {{ .Values.llmProviders.watsonx.endpoint | quote }}
-        {{- end }}

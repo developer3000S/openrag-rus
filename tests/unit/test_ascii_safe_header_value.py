@@ -27,15 +27,13 @@ from utils.langflow_headers import ascii_safe_header_value, map_provider  # noqa
     [
         ("openai", "OpenAI"),
         ("OPENAI", "OpenAI"),
-        ("anthropic", "Anthropic"),
-        ("Anthropic", "Anthropic"),
         ("ollama", "Ollama"),
         ("OLLAMA", "Ollama"),
-        ("watsonx", "IBM WatsonX"),
-        ("WatsonX", "IBM WatsonX"),
         ("", ""),
         (None, ""),
         ("unknown_provider", "unknown_provider"),
+        # Providers without a curated Langflow display name pass through as-is.
+        ("gemini", "gemini"),
     ],
 )
 def test_map_provider(provider, expected):

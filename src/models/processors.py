@@ -538,9 +538,7 @@ class TaskProcessor:
         )
 
         litellm_model_lower = litellm_embedding_model.lower() if litellm_embedding_model else ""
-        if "watsonx" in litellm_model_lower:
-            max_tokens = 500
-        elif "ollama" in litellm_model_lower:
+        if "ollama" in litellm_model_lower:
             max_tokens = 2000
         else:
             max_tokens = 8000

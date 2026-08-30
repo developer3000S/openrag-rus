@@ -50,8 +50,6 @@ const OmniRouteSettingsDialog = ({
   const canRemoveOmniRoute =
     isOmniRouteConfigured &&
     (settings.providers?.openai?.configured === true ||
-      settings.providers?.anthropic?.configured === true ||
-      settings.providers?.watsonx?.configured === true ||
       settings.providers?.ollama?.configured === true);
 
   const methods = useForm<OmniRouteSettingsFormData>({

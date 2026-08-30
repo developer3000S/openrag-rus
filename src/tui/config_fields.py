@@ -9,10 +9,8 @@ from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 
 from .utils.validation import (
-    validate_anthropic_api_key,
     validate_ollama_endpoint,
     validate_openai_api_key,
-    validate_watsonx_endpoint,
 )
 
 
@@ -185,16 +183,6 @@ CONFIG_SECTIONS: list[ConfigSection] = [
                 validator_error="Invalid OpenAI API key format (should start with sk-)",
             ),
             ConfigField(
-                "anthropic_api_key",
-                "ANTHROPIC_API_KEY",
-                "Anthropic API Key",
-                placeholder="sk-ant-...",
-                secret=True,
-                helper_text="Get a key: https://console.anthropic.com/settings/keys",
-                validator=validate_anthropic_api_key,
-                validator_error="Invalid Anthropic API key format (should start with sk-ant-)",
-            ),
-            ConfigField(
                 "ollama_endpoint",
                 "OLLAMA_ENDPOINT",
                 "Ollama Base URL",
@@ -202,30 +190,6 @@ CONFIG_SECTIONS: list[ConfigSection] = [
                 helper_text="Endpoint of your Ollama server",
                 validator=validate_ollama_endpoint,
                 validator_error="Invalid Ollama endpoint URL format",
-            ),
-            ConfigField(
-                "watsonx_api_key",
-                "WATSONX_API_KEY",
-                "IBM watsonx.ai API Key",
-                placeholder="",
-                secret=True,
-                helper_text="Get a key: https://cloud.ibm.com/iam/apikeys",
-            ),
-            ConfigField(
-                "watsonx_endpoint",
-                "WATSONX_ENDPOINT",
-                "IBM watsonx.ai Endpoint",
-                placeholder="https://us-south.ml.cloud.ibm.com",
-                helper_text="Example: https://us-south.ml.cloud.ibm.com",
-                validator=validate_watsonx_endpoint,
-                validator_error="Invalid watsonx.ai endpoint URL format",
-            ),
-            ConfigField(
-                "watsonx_project_id",
-                "WATSONX_PROJECT_ID",
-                "IBM watsonx.ai Project ID",
-                placeholder="",
-                helper_text="Find in your IBM Cloud project settings",
             ),
         ],
     ),

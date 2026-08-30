@@ -13,7 +13,7 @@ export class ProviderDetector {
   /**
    * Check if a provider is configured by checking the button text
    * Configured providers show "Edit Setup", unconfigured show "Configure"
-   * @param providerName - Name of the provider (e.g., "OpenAI", "Ollama", "IBM watsonx.ai", "Anthropic")
+   * @param providerName - Name of the provider (e.g., "OpenAI", "Ollama")
    * @returns true if provider is configured (has "Edit Setup" button), false otherwise
    */
   async isProviderConfigured(providerName: string): Promise<boolean> {
@@ -61,7 +61,7 @@ export class ProviderDetector {
    * @returns Array of configured provider names
    */
   async getConfiguredProviders(): Promise<string[]> {
-    const providers = ["OpenAI", "Ollama", "IBM watsonx.ai", "Anthropic"];
+    const providers = ["OpenAI", "Ollama"];
     const configured: string[] = [];
 
     for (const provider of providers) {

@@ -32,11 +32,7 @@ export class Settings {
     this.page.getByLabel(/chunk overlap/i);
   private readonly disableLangflowIngestionToggle = () =>
     this.page.getByRole("switch", { name: /disable langflow ingestion/i });
-  private readonly watsonxProjectIDInput = () =>
-    this.page.locator("#project-id");
   private readonly apiKeyInput = () => this.page.locator("#api-key");
-  private readonly watsonxEndPointCombobox = () =>
-    this.page.getByRole("combobox");
   private readonly saveModelProviderButton = () =>
     this.page.getByRole("button", { name: "Save" });
   private readonly removeModelProviderButton = () =>
@@ -71,16 +67,6 @@ export class Settings {
    */
   private getSetupHeading(providerName: string) {
     return this.page.getByRole("heading", { name: providerName });
-  }
-
-  /**
-   * Get locator for watsonx option by value
-   * Uses data-testid for precise, strict-mode-safe matching
-   * @param value - The option value (URL string)
-   * @returns Locator for the option
-   */
-  private getWatsonxOption(value: string) {
-    return this.page.getByTestId(`model-option-${value}`);
   }
 
   /**
@@ -345,48 +331,6 @@ export class Settings {
   }
 
   /**
-   * Configure IBM watsonx.ai model provider
-   */
-  async configureWatsonxai() {
-    logger.info("Configuring watsonx.ai settings");
-    const configureBtn = this.getConfigureButton("IBM watsonx.ai");
-    const editBtn = this.getEditSetupButton("IBM watsonx.ai");
-    // If Configure button is visible -> do setup
-    if (await configureBtn.isVisible()) {
-      await configureBtn.click();
-      await expect(this.getSetupHeading("IBM watsonx.ai")).toBeVisible();
-      const { url, projectId, apiKey } = config.watsonx;
-      await this.watsonxEndPointCombobox().click();
-      // Wait for the dropdown to open by polling until any option appears
-      await this.page.waitForSelector('[role="option"]', {
-        state: "visible",
-        timeout: 15000,
-      });
-      const option = this.getWatsonxOption(url);
-      await expect(option).toBeVisible({ timeout: 10000 });
-      await option.click();
-      await this.watsonxProjectIDInput().fill(projectId);
-      await this.apiKeyInput().fill(apiKey);
-      await this.saveModelProviderButton().click();
-      await this.awaitProviderConfigResult(
-        "Watsonx.ai",
-        "IBM watsonx.ai successfully configured",
-      );
-      logger.info("Watsonx.ai configuration completed");
-      await expect(editBtn).toBeEnabled();
-    }
-    // Else if already configured -> skip setup
-    else if (await editBtn.isVisible()) {
-      logger.info("Watsonx.ai already configured. Skipping setup.");
-      await expect(editBtn).toBeEnabled();
-    }
-    // Neither found
-    else {
-      throw new Error("Neither Configure nor Edit Setup button is visible");
-    }
-  }
-
-  /**
    * Wait for a provider dialog to report success or a connection error.
    *
    * Racing two locators with `.or()` fails under strict mode as soon as either
@@ -497,41 +441,6 @@ export class Settings {
     // Neither found
     else {
       throw new Error("Neither Configure nor Edit Setup button is visible");
-    }
-  }
-
-  /**
-   * Configure IBM watsonx.ai model provider with invalid credentials
-   */
-  async configureWatsonxaiInvalidCredentials(
-    url: string,
-    projectId: string,
-    apiKey: string,
-  ) {
-    logger.info("Configuring watsonx.ai settings with invalid credentials");
-    const configureBtn = this.getConfigureButton("IBM watsonx.ai");
-    // If Configure button is visible -> do setup
-    if (await configureBtn.isVisible()) {
-      await configureBtn.click();
-      await expect(this.getSetupHeading("IBM watsonx.ai")).toBeVisible();
-      await this.watsonxEndPointCombobox().click();
-      // Wait for the dropdown to open by polling until any option appears
-      await this.page.waitForSelector('[role="option"]', {
-        state: "visible",
-        timeout: 15000,
-      });
-      const option = this.getWatsonxOption(url);
-      await expect(option).toBeVisible({ timeout: 10000 });
-      await option.click();
-      await this.watsonxProjectIDInput().fill(projectId);
-      await this.apiKeyInput().fill(apiKey);
-      await this.saveModelProviderButton().click();
-      logger.info(
-        "Verify that watsonx.ai configuration failed due to invalid credentials",
-      );
-      await expect(this.providerConnectionErrorMessage()).toBeVisible({
-        timeout: 30000,
-      });
     }
   }
 }

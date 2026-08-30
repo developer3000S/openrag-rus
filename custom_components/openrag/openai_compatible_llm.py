@@ -7,7 +7,7 @@ Langflow never holds upstream vendor keys. At runtime OpenRAG injects:
 - ``SELECTED_LANGUAGE_MODEL`` — configured chat model id
 
 ``ChatOpenAI`` posts to ``{base_url}/chat/completions``. The backend gateway
-then calls the real vendor (OpenAI, Anthropic, Watsonx, Ollama, or any other
+then calls the real vendor (OpenAI, Ollama, or any other
 LiteLLM provider). Embeddings use the same base URL and hop token; see
 ``openai_compatible_embedding.py``.
 """

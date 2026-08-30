@@ -253,21 +253,18 @@ def _vlm_mock_config(provider: str) -> MagicMock:
     k = mock_config.knowledge
     k.vlm_enabled = True
     k.vlm_provider = provider
-    k.vlm_model = "gpt-4o" if provider == "openai" else "meta-llama/llama-vision"
+    k.vlm_model = "gpt-4o" if provider == "openai" else "llama3.2-vision"
     k.vlm_prompt = "Extract all text."
     k.vlm_response_format = "markdown"
     k.vlm_max_tokens = 5000
     k.vlm_concurrency = 4
     k.vlm_timeout = 120
     k.vlm_openai_url = "https://api.openai.com/v1/chat/completions"
-    k.vlm_watsonx_api_version = "2023-05-29"
     k.table_structure = False
     k.ocr = False
     k.picture_descriptions = True
     mock_config.providers.openai.api_key = "sk-test"
-    mock_config.providers.watsonx.api_key = "wx-key"
-    mock_config.providers.watsonx.endpoint = "https://us-south.ml.cloud.ibm.com/"
-    mock_config.providers.watsonx.project_id = "proj-123"
+    mock_config.providers.ollama.endpoint = "http://ollama:11434"
     return mock_config
 
 
@@ -288,34 +285,26 @@ async def test_build_vlm_options_openai(docling_service):
 
 
 @pytest.mark.asyncio
-async def test_build_vlm_options_watsonx(docling_service):
-    """watsonx VLM options exchange the API key for an IAM bearer token."""
-    mock_config = _vlm_mock_config("watsonx")
-    with (
-        patch("services.docling_service.get_openrag_config", return_value=mock_config),
-        patch("services.watsonx_iam.get_iam_token", new_callable=AsyncMock) as mock_token,
-    ):
-        mock_token.return_value = "iam-token"
+async def test_build_vlm_options_ollama(docling_service):
+    """Ollama VLM options point at the Ollama server's chat-completions endpoint."""
+    mock_config = _vlm_mock_config("ollama")
+    with patch("services.docling_service.get_openrag_config", return_value=mock_config):
         options = await docling_service._build_docling_options_async()
 
-    mock_token.assert_awaited_once_with("wx-key")
     api = options["picture_description_api"]
-    assert api["url"] == "https://us-south.ml.cloud.ibm.com/ml/v1/text/chat?version=2023-05-29"
-    assert api["headers"]["Authorization"] == "Bearer iam-token"
-    assert api["params"] == {
-        "model_id": "meta-llama/llama-vision",
-        "project_id": "proj-123",
-        "max_tokens": 5000,
-    }
+    assert api["url"] == "http://ollama:11434/v1/chat/completions"
+    assert api["headers"] == {}
+    assert api["params"] == {"model": "llama3.2-vision", "max_completion_tokens": 5000}
+    assert api["prompt"] == "Extract all text."
 
 
 @pytest.mark.asyncio
-async def test_build_vlm_options_watsonx_unconfigured(docling_service):
-    """Raises DoclingServeError when watsonx provider is incomplete."""
-    mock_config = _vlm_mock_config("watsonx")
-    mock_config.providers.watsonx.project_id = ""
+async def test_build_vlm_options_ollama_unconfigured(docling_service):
+    """Raises DoclingServeError when Ollama has no endpoint configured."""
+    mock_config = _vlm_mock_config("ollama")
+    mock_config.providers.ollama.endpoint = ""
     with patch("services.docling_service.get_openrag_config", return_value=mock_config):
-        with pytest.raises(DoclingServeError, match="watsonx provider is not fully"):
+        with pytest.raises(DoclingServeError, match="Ollama provider is not configured"):
             await docling_service._build_docling_options_async()
 
 
@@ -333,7 +322,7 @@ async def test_build_vlm_options_ollama(docling_service):
     api = options["picture_description_api"]
     assert api["url"] == "http://localhost:11434/v1/chat/completions"
     assert api["headers"] == {}
-    assert api["params"] == {"model": "meta-llama/llama-vision", "max_completion_tokens": 5000}
+    assert api["params"] == {"model": "llama3.2-vision", "max_completion_tokens": 5000}
     assert api["prompt"] == "Extract all text."
 
 

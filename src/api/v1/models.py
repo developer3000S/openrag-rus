@@ -28,15 +28,6 @@ async def _fetch_models(provider, config, models_service):
         models = await models_service.get_openai_models(api_key=api_key)
         return models, None
 
-    if provider == "anthropic":
-        api_key = config.providers.anthropic.api_key
-        if not api_key:
-            return None, JSONResponse(
-                {"error": "Anthropic API key not configured. Set it in Settings."}, status_code=400
-            )
-        models = await models_service.get_anthropic_models(api_key=api_key)
-        return models, None
-
     if provider == "ollama":
         endpoint = config.providers.ollama.endpoint
         if not endpoint:
@@ -44,30 +35,6 @@ async def _fetch_models(provider, config, models_service):
                 {"error": "Ollama endpoint not configured. Set it in Settings."}, status_code=400
             )
         models = await models_service.get_ollama_models(endpoint=endpoint)
-        return models, None
-
-    if provider == "watsonx":
-        api_key = config.providers.watsonx.api_key
-        endpoint = config.providers.watsonx.endpoint
-        project_id = config.providers.watsonx.project_id
-        if not api_key:
-            return None, JSONResponse(
-                {"error": "WatsonX API key not configured. Set it in Settings."},
-                status_code=400,
-            )
-        if not endpoint:
-            return None, JSONResponse(
-                {"error": "WatsonX endpoint not configured. Set it in Settings."},
-                status_code=400,
-            )
-        if not project_id:
-            return None, JSONResponse(
-                {"error": "WatsonX project ID not configured. Set it in Settings."},
-                status_code=400,
-            )
-        models = await models_service.get_ibm_models(
-            endpoint=endpoint, api_key=api_key, project_id=project_id
-        )
         return models, None
 
     provider_config = config.providers.get_provider_config(provider)

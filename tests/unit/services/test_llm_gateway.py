@@ -6,12 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 from config.config_manager import (
-    AnthropicConfig,
     GenericProviderConfig,
     OllamaConfig,
     OpenAIConfig,
     ProvidersConfig,
-    WatsonXConfig,
 )
 from services.llm_gateway import (
     LlmGatewayError,
@@ -26,14 +24,10 @@ from services.llm_gateway import (
 def _config(**overrides):
     providers = SimpleNamespace(
         openai=SimpleNamespace(api_key="sk-openai", configured=True),
-        anthropic=SimpleNamespace(api_key="sk-ant", configured=True),
         ollama=SimpleNamespace(
-            endpoint="http://localhost:11434", resolved_endpoint="", configured=True
-        ),
-        watsonx=SimpleNamespace(
-            api_key="wx-key",
-            endpoint="https://us-south.ml.cloud.ibm.com",
-            project_id="proj",
+            endpoint="http://localhost:11434",
+            resolved_endpoint="",
+            api_base="http://localhost:11434",
             configured=True,
         ),
     )
@@ -48,7 +42,7 @@ def _config(**overrides):
 
 
 def test_split_model_id_recognises_known_prefixes():
-    assert split_model_id("anthropic/claude-sonnet-4-5") == ("anthropic", "claude-sonnet-4-5")
+    assert split_model_id("ollama/qwen3") == ("ollama", "qwen3")
     assert split_model_id("gpt-4o-mini") == (None, "gpt-4o-mini")
     assert split_model_id("openai/gpt-4o") == ("openai", "gpt-4o")
 
@@ -60,23 +54,22 @@ def test_resolve_call_uses_configured_provider_when_model_is_bare():
     assert creds["api_key"] == "sk-openai"
 
 
-def test_resolve_call_anthropic_gets_litellm_prefix():
-    cfg = _config(agent=SimpleNamespace(llm_model="claude-sonnet-4-5", llm_provider="anthropic"))
+def test_resolve_call_ollama_gets_litellm_prefix():
+    cfg = _config(agent=SimpleNamespace(llm_model="qwen3", llm_provider="ollama"))
     model, provider, creds = resolve_call(None, kind="chat", config=cfg)
-    assert provider == "anthropic"
-    assert model == "anthropic/claude-sonnet-4-5"
-    assert creds["api_key"] == "sk-ant"
+    assert provider == "ollama"
+    assert model == "ollama/qwen3"
 
 
-def test_resolve_call_watsonx_includes_project_and_endpoint():
+def test_resolve_call_embedding_uses_configured_provider():
     cfg = _config(
-        knowledge=SimpleNamespace(embedding_model="ibm/slate", embedding_provider="watsonx")
+        knowledge=SimpleNamespace(
+            embedding_model="nomic-embed-text", embedding_provider="ollama"
+        )
     )
-    model, provider, creds = resolve_call("ibm/slate", kind="embedding", config=cfg)
-    assert provider == "watsonx"
-    assert model == "watsonx/ibm/slate"
-    assert creds["project_id"] == "proj"
-    assert creds["api_base"] == "https://us-south.ml.cloud.ibm.com"
+    model, provider, creds = resolve_call(None, kind="embedding", config=cfg)
+    assert provider == "ollama"
+    assert model == "ollama/nomic-embed-text"
 
 
 def test_provider_credentials_rejects_unknown_provider():
@@ -97,8 +90,6 @@ def test_provider_credentials_rejects_missing_openai_key():
 def test_provider_credentials_supports_arbitrary_litellm_provider():
     providers = ProvidersConfig(
         openai=OpenAIConfig(),
-        anthropic=AnthropicConfig(),
-        watsonx=WatsonXConfig(),
         ollama=OllamaConfig(),
         custom={
             "gemini": GenericProviderConfig(
@@ -121,8 +112,6 @@ def test_provider_credentials_supports_arbitrary_litellm_provider():
 def test_resolve_call_routes_omniroute_through_openai_compatible_prefix():
     providers = ProvidersConfig(
         openai=OpenAIConfig(),
-        anthropic=AnthropicConfig(),
-        watsonx=WatsonXConfig(),
         ollama=OllamaConfig(),
         custom={
             "omniroute": GenericProviderConfig(
@@ -191,7 +180,7 @@ async def test_chat_completions_forwards_tools(monkeypatch):
     tools = [{"type": "function", "function": {"name": "search"}}]
     await chat_completions(
         {
-            "model": "anthropic/claude-sonnet-4-5",
+            "model": "gpt-4o-mini",
             "messages": [],
             "tools": tools,
             "tool_choice": "auto",
@@ -200,8 +189,8 @@ async def test_chat_completions_forwards_tools(monkeypatch):
     )
     assert captured["tools"] == tools
     assert captured["tool_choice"] == "auto"
-    assert captured["model"] == "anthropic/claude-sonnet-4-5"
-    assert captured["api_key"] == "sk-ant"
+    assert captured["model"] == "gpt-4o-mini"
+    assert captured["api_key"] == "sk-openai"
 
 
 @pytest.mark.asyncio
@@ -356,13 +345,13 @@ def test_log_completion_shape_flags_an_empty_completion(monkeypatch):
     monkeypatch.setattr(llm_gateway, "logger", recorder)
 
     payload = {"choices": [{"finish_reason": "stop", "message": {"content": "", "tool_calls": []}}]}
-    llm_gateway._log_completion_shape(payload, "watsonx", "watsonx/ibm/granite-4-h-small")
+    llm_gateway._log_completion_shape(payload, "ollama", "ollama/qwen3")
 
     assert recorder.calls, "nothing was logged"
     level, event, fields = recorder.calls[0]
     assert level == "warning"
     assert "no content and no tool calls" in event
-    assert fields["provider"] == "watsonx"
+    assert fields["provider"] == "ollama"
     assert fields["tool_calls"] == 0
     assert fields["content_chars"] == 0
 
@@ -418,7 +407,7 @@ async def test_stream_sse_still_forwards_every_chunk_and_terminates():
 
 @pytest.mark.asyncio
 async def test_stream_sse_warns_when_a_stream_yields_nothing_usable(monkeypatch):
-    """The watsonx symptom: 200 OK, chunks arrive, but no content and no tool calls."""
+    """A 200 with empty deltas and no tool calls must surface in logs."""
     from services import llm_gateway
 
     recorder = _RecordingLogger()
@@ -429,14 +418,14 @@ async def test_stream_sse_warns_when_a_stream_yields_nothing_usable(monkeypatch)
 
     [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     levels = [call[0] for call in recorder.calls]
     assert "warning" in levels
     _level, event, fields = next(c for c in recorder.calls if c[0] == "warning")
     assert "no content and no tool calls" in event
-    assert fields["provider"] == "watsonx"
+    assert fields["provider"] == "ollama"
     assert fields["finish_reason"] == "stop"
 
 
@@ -463,9 +452,10 @@ async def test_stream_sse_counts_tool_calls_as_usable_output(monkeypatch):
 async def test_chat_completions_lets_litellm_drop_provider_unsupported_params(monkeypatch):
     """A multi-provider proxy must degrade, not 502, on provider param gaps.
 
-    OpenAI-compatible clients send OpenAI's full parameter set, but watsonx
-    rejects `parallel_tool_calls`, `max_completion_tokens` and `logit_bias`,
-    and LiteLLM raises UnsupportedParamsError rather than ignoring them.
+    OpenAI-compatible clients send OpenAI's full parameter set, but some
+    upstream providers reject `parallel_tool_calls`, `max_completion_tokens`
+    and `logit_bias`, and LiteLLM raises UnsupportedParamsError rather than
+    ignoring them.
     """
     captured = {}
 
@@ -491,31 +481,31 @@ async def test_chat_completions_lets_litellm_drop_provider_unsupported_params(mo
     assert captured["max_completion_tokens"] == 64
 
 
-def test_watsonx_rejects_params_we_forward_unless_they_are_dropped():
-    """Pin the upstream behaviour this fix relies on.
+def test_provider_rejects_unsupported_params_unless_they_are_dropped():
+    """Pin the behaviour `drop_params` relies on.
 
-    If LiteLLM ever starts accepting these for watsonx, `drop_params` becomes
-    redundant rather than wrong — but while it rejects them, forwarding them
-    without the flag is a hard failure for every watsonx caller.
+    OpenAI-compatible clients send OpenAI's full parameter set. Some upstream
+    providers reject parameters such as `parallel_tool_calls` and `logit_bias`;
+    LiteLLM raises UnsupportedParamsError rather than ignoring them, so the
+    gateway forwards them only with `drop_params` set.
     """
     from litellm.exceptions import UnsupportedParamsError
     from litellm.utils import get_optional_params
 
     for param, value in (
         ("parallel_tool_calls", True),
-        ("max_completion_tokens", 64),
         ("logit_bias", {"1": 1}),
     ):
         with pytest.raises(UnsupportedParamsError):
             get_optional_params(
-                model="ibm/granite-4-h-small",
-                custom_llm_provider="watsonx",
+                model="qwen3",
+                custom_llm_provider="ollama",
                 **{param: value},
             )
 
         dropped = get_optional_params(
-            model="ibm/granite-4-h-small",
-            custom_llm_provider="watsonx",
+            model="qwen3",
+            custom_llm_provider="ollama",
             drop_params=True,
             **{param: value},
         )
@@ -526,13 +516,11 @@ def test_watsonx_rejects_params_we_forward_unless_they_are_dropped():
     ("model_id", "expected"),
     [
         # Canonical tag. The name keeps its own slashes and colons.
-        ("watsonx:openai/gpt-oss-120b", ("watsonx", "openai/gpt-oss-120b")),
-        ("watsonx:ibm/granite-4-h-small", ("watsonx", "ibm/granite-4-h-small")),
         ("ollama:gpt-oss:120b-cloud", ("ollama", "gpt-oss:120b-cloud")),
         ("openai:ft:gpt-4-0613", ("openai", "ft:gpt-4-0613")),
         # Legacy `provider/model` tags still resolve.
-        ("watsonx/ibm/granite-4-h-small", ("watsonx", "ibm/granite-4-h-small")),
-        ("anthropic/claude-sonnet-4-5", ("anthropic", "claude-sonnet-4-5")),
+        ("ollama/qwen3:32b", ("ollama", "qwen3:32b")),
+        ("openai/gpt-4o", ("openai", "gpt-4o")),
         # Untagged ids are left to the configured default provider.
         ("gpt-4o-mini", (None, "gpt-4o-mini")),
         ("gpt-oss:120b-cloud", (None, "gpt-oss:120b-cloud")),
@@ -546,15 +534,16 @@ def test_split_model_id_handles_tagged_and_untagged_ids(model_id, expected):
 
 
 def test_a_vendor_qualified_name_is_not_mistaken_for_a_provider_tag():
-    """watsonx serves `openai/gpt-oss-120b`; the `openai/` is part of the name.
+    """A catalogue model's vendor-qualified id keeps its `provider/` prefix.
 
-    Splitting on the slash routed it to OpenAI as a bare `gpt-oss-120b`, which
-    LiteLLM rejects with "LLM Provider NOT provided", surfacing to the user as
-    "The model provider could not be reached."
+    Splitting on the slash routes it to the provider named by the prefix, which
+    LiteLLM then rejects with "LLM Provider NOT provided", surfacing to the
+    user as "The model provider could not be reached." The catalogue owner
+    check must win instead.
     """
     from services.llm_gateway import split_model_id
 
-    assert split_model_id("openai/gpt-oss-120b") == ("watsonx", "openai/gpt-oss-120b")
+    assert split_model_id("ollama/gpt-oss:120b-cloud") == ("ollama", "gpt-oss:120b-cloud")
 
 
 def test_model_ids_served_by_v1_models_round_trip():
@@ -585,7 +574,7 @@ def test_no_catalogue_id_has_a_provider_shaped_prefix_before_a_colon():
 # Tool-call arguments that arrive serialised twice
 # --------------------------------------------------------------------------
 
-#: What `watsonx/ibm/granite-4-h-small` actually sends: the arguments object,
+#: What a non-OpenAI provider can actually send: the arguments object,
 #: serialised, then serialised again. Captured from a live call.
 _DOUBLE_ENCODED_ARGUMENTS = '"{\\n  \\"query\\": \\"Earned Leaves\\"\\n}"'
 _WELL_FORMED_ARGUMENTS = '{"query": "Earned Leaves"}'
@@ -652,7 +641,7 @@ async def test_chat_completions_repairs_double_encoded_tool_arguments(monkeypatc
 
     monkeypatch.setattr("litellm.acompletion", fake)
     payload = await chat_completions(
-        {"model": "watsonx:ibm/granite-4-h-small", "messages": []}, config=_config()
+        {"model": "ollama/qwen3", "messages": []}, config=_config()
     )
 
     arguments = payload["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"]
@@ -749,7 +738,7 @@ async def test_stream_sse_reassembles_and_repairs_fragmented_tool_arguments():
 
     lines = [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     calls = _streamed_tool_calls(lines)
@@ -847,7 +836,7 @@ async def test_stream_sse_flushes_tool_calls_when_the_provider_sends_no_finish_r
 
     lines = [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     calls = _streamed_tool_calls(lines)
@@ -868,13 +857,13 @@ async def test_stream_sse_logs_the_repair(monkeypatch):
 
     [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     warnings = [call for call in recorder.calls if call[0] == "warning"]
     assert any("Repaired double-encoded tool call arguments" in call[1] for call in warnings)
     _level, _event, fields = next(call for call in warnings if "Repaired" in call[1])
-    assert fields["model"] == "watsonx/ibm/granite-4-h-small"
+    assert fields["model"] == "ollama/qwen3"
     assert fields["tool_calls"] == 1
 
 
@@ -888,7 +877,7 @@ class _FakeLiteLLMError(Exception):
 
     def __init__(self, message, status_code=400):
         super().__init__(message)
-        self.llm_provider = "watsonx"
+        self.llm_provider = "ollama"
         self.status_code = status_code
 
 
@@ -899,17 +888,17 @@ async def test_chat_completions_surfaces_the_provider_error_body(monkeypatch):
     async def boom(**kwargs):
         raise _FakeLiteLLMError(
             'OpenAILikeError: {"errors":[{"code":"model_not_supported","message":'
-            "\"Model 'ibm/granite-3-3-8b-instruct' was not found. This model may be "
+            "\"Model 'qwen3' was not found. This model may be "
             'unsupported, deprecated, or removed."}],"status_code":404}'
         )
 
     monkeypatch.setattr("litellm.acompletion", boom)
     with pytest.raises(LlmGatewayError) as exc:
         await chat_completions(
-            {"model": "watsonx:ibm/granite-3-3-8b-instruct", "messages": []}, config=_config()
+            {"model": "ollama/qwen3", "messages": []}, config=_config()
         )
 
-    assert "watsonx/ibm/granite-3-3-8b-instruct" in exc.value.message
+    assert "ollama/qwen3" in exc.value.message
     assert "was not found" in exc.value.message
     assert "OpenAILikeError" not in exc.value.message
 
@@ -984,15 +973,15 @@ async def test_stream_sse_emits_an_error_frame_when_the_provider_fails_mid_strea
     lines = [
         line
         async for line in llm_gateway._stream_sse(
-            gen(), "watsonx", "watsonx/ibm/granite-4-h-small", {"api_key": "wx-key"}
+            gen(), "ollama", "ollama/qwen3", {"api_key": "ollama-key"}
         )
     ]
 
     assert lines[-1] == "data: [DONE]\n\n"
     error = json.loads(lines[-2][len("data: ") :])["error"]
     assert "context window exceeded" in error["message"]
-    assert error["provider"] == "watsonx"
-    assert error["model"] == "watsonx/ibm/granite-4-h-small"
+    assert error["provider"] == "ollama"
+    assert error["model"] == "ollama/qwen3"
 
 
 @pytest.mark.asyncio
@@ -1000,17 +989,17 @@ async def test_stream_sse_keeps_credentials_out_of_the_error_frame():
     from services import llm_gateway
 
     async def gen():
-        raise _FakeLiteLLMError("rejected token wx-super-secret-key")
+        raise _FakeLiteLLMError("rejected token ollama-super-secret-key")
         yield  # pragma: no cover - generator marker
 
     lines = [
         line
         async for line in llm_gateway._stream_sse(
-            gen(), "watsonx", "watsonx/ibm/granite-4-h-small", {"api_key": "wx-super-secret-key"}
+            gen(), "ollama", "ollama/qwen3", {"api_key": "ollama-super-secret-key"}
         )
     ]
 
-    assert "wx-super-secret-key" not in "".join(lines)
+    assert "ollama-super-secret-key" not in "".join(lines)
 
 
 @pytest.mark.asyncio
@@ -1023,14 +1012,14 @@ async def test_stream_sse_reports_an_empty_completion_instead_of_going_silent():
 
     lines = [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     assert lines[-1] == "data: [DONE]\n\n"
     error = json.loads(lines[-2][len("data: ") :])["error"]
     assert "no content and no tool calls" in error["message"]
     assert "finish_reason: stop" in error["message"]
-    assert "watsonx/ibm/granite-4-h-small" in error["message"]
+    assert "ollama/qwen3" in error["message"]
 
 
 @pytest.mark.asyncio
@@ -1056,7 +1045,7 @@ async def test_stream_sse_counts_a_repaired_tool_call_as_output():
 
     lines = [
         line
-        async for line in llm_gateway._stream_sse(gen(), "watsonx", "watsonx/ibm/granite-4-h-small")
+        async for line in llm_gateway._stream_sse(gen(), "ollama", "ollama/qwen3")
     ]
 
     assert not any('"error"' in line for line in lines)

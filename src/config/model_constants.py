@@ -7,6 +7,4 @@ as thin offline fallbacks when a live fetch is unavailable.
 
 OPENAI_DEFAULT_LANGUAGE_MODEL = "gpt-5.4-mini"
 
-ANTHROPIC_DEFAULT_LANGUAGE_MODEL = "claude-sonnet-4-6"
-
 OLLAMA_DEFAULT_LANGUAGE_MODEL_PATTERN = "gpt-oss"

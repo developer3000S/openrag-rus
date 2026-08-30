@@ -28,7 +28,7 @@ async def check_provider_health(
     Check if the configured provider is healthy and properly validated.
 
     Query parameters:
-        provider (optional): Provider to check ('openai', 'ollama', 'watsonx', 'anthropic').
+        provider (optional): Provider to check ('openai', 'ollama').
                            If not provided, checks the currently configured provider.
         test_completion (optional): If true, performs full validation with completion/embedding tests.
         model (optional): Validate against this chat model instead of the configured one.
@@ -127,7 +127,7 @@ async def check_provider_health(
             embedding_credentials = current_config.providers.credential_values(embedding_provider)
 
             # Short-circuit identical concurrent polls from the provider-health
-            # banner so we don't fan out N watsonx round-trips per poll cycle.
+            # banner so we don't fan out N provider round-trips per poll cycle.
             # Only the polled (no `check_provider`) success path is cached; the
             # 503 branch and the specific-provider branch always re-validate.
             health_cache_key = provider_health_cache.cache_key(
@@ -194,7 +194,7 @@ async def check_provider_health(
                     "details": {
                         "llm_model": llm_model,
                         "embedding_model": embedding_model,
-                        "endpoint": endpoint if provider in ["ollama", "watsonx"] else None,
+                        "endpoint": endpoint if provider in ["ollama"] else None,
                     },
                 },
                 status_code=200,
@@ -230,18 +230,6 @@ async def check_provider_health(
                 logger.error(f"LLM provider ({provider}) validation failed: {llm_error}")
 
             # Validate embedding provider
-            # For WatsonX with test_completion=True, wait 2 seconds between completion and embedding tests
-            if (
-                test_completion
-                and provider == "watsonx"
-                and embedding_provider == "watsonx"
-                and llm_error is None
-            ):
-                logger.info(
-                    "Waiting 2 seconds before WatsonX embedding test (after completion test)"
-                )
-                await asyncio.sleep(2)
-
             try:
                 await validate_provider_setup(
                     provider=embedding_provider,

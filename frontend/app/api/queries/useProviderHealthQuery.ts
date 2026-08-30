@@ -26,7 +26,7 @@ export interface ProviderHealthResponse {
 }
 
 export interface ProviderHealthParams {
-  provider?: "openai" | "ollama" | "watsonx";
+  provider?: "openai" | "ollama";
   test_completion?: boolean;
 }
 

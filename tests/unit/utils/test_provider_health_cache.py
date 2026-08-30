@@ -18,17 +18,17 @@ def _isolate_cache():
 
 def _key(**overrides):
     base = dict(
-        provider="watsonx",
-        embedding_provider="watsonx",
+        provider="ollama",
+        embedding_provider="ollama",
         test_completion=False,
-        llm_model="ibm/granite-4-h-small",
-        embedding_model="ibm/slate-125m-english-rtrvr-v2",
-        endpoint="https://us-south.ml.cloud.ibm.com",
-        project_id="proj-abc",
+        llm_model="qwen3",
+        embedding_model="nomic-embed-text",
+        endpoint="http://localhost:11434",
+        project_id=None,
         api_key="key-1",
         embedding_api_key="key-1",
-        embedding_endpoint="https://us-south.ml.cloud.ibm.com",
-        embedding_project_id="proj-abc",
+        embedding_endpoint="http://localhost:11434",
+        embedding_project_id=None,
     )
     base.update(overrides)
     return cache_key(**base)
@@ -40,7 +40,7 @@ def test_get_returns_none_on_miss():
 
 def test_set_then_get_round_trips_payload():
     key = _key()
-    payload = {"status": "healthy", "llm_provider": "watsonx"}
+    payload = {"status": "healthy", "llm_provider": "ollama"}
     provider_health_cache.set_(key, payload)
 
     assert provider_health_cache.get(key) == payload
@@ -59,19 +59,15 @@ def test_invalidate_clears_all_entries():
 @pytest.mark.parametrize(
     "field,a,b",
     [
-        ("provider", "watsonx", "openai"),
-        ("embedding_provider", "watsonx", "openai"),
+        ("provider", "ollama", "openai"),
+        ("embedding_provider", "ollama", "openai"),
         ("test_completion", False, True),
-        ("llm_model", "ibm/granite-4-h-small", "ibm/granite-3-2b-instruct"),
-        ("embedding_model", "ibm/slate-125m-english-rtrvr-v2", "ibm/slate-30m-english-rtrvr-v2"),
-        ("endpoint", "https://us-south.ml.cloud.ibm.com", "https://eu-de.ml.cloud.ibm.com"),
+        ("llm_model", "qwen3", "llama3.2"),
+        ("embedding_model", "nomic-embed-text", "mxbai-embed-large"),
+        ("endpoint", "http://localhost:11434", "http://ollama:11434"),
         ("project_id", "proj-abc", "proj-xyz"),
         ("api_key", "key-1", "key-2"),
-        (
-            "embedding_endpoint",
-            "https://us-south.ml.cloud.ibm.com",
-            "https://eu-de.ml.cloud.ibm.com",
-        ),
+        ("embedding_endpoint", "http://localhost:11434", "http://ollama:11434"),
         ("embedding_project_id", "proj-abc", "proj-xyz"),
         ("embedding_api_key", "key-1", "key-2"),
     ],

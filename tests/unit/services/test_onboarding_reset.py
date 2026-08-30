@@ -66,10 +66,10 @@ async def test_reset_models_clears_llm_and_embedding(session, monkeypatch):
     repo = WorkspaceConfigRepo(session)
     await repo.upsert("meta", {"edited": True})
     await repo.upsert("onboarding", {"current_step": 4})
-    await repo.upsert("agent", {"llm_model": "gpt-4o", "llm_provider": "anthropic"})
+    await repo.upsert("agent", {"llm_model": "gpt-4o", "llm_provider": "ollama"})
     await repo.upsert(
         "knowledge",
-        {"embedding_model": "text-embedding-3-small", "embedding_provider": "anthropic"},
+        {"embedding_model": "text-embedding-3-small", "embedding_provider": "ollama"},
     )
     await session.commit()
 

@@ -14,12 +14,7 @@ export const TEST_CONFIG = {
     ? `${process.env.BASE_URL}/chat`
     : "http://localhost:3000/chat",
 
-  //Watsonx config
-  watsonx: {
-    url: process.env.WATSONX_ENDPOINT!,
-    projectId: process.env.WATSONX_PROJECT_ID!,
-    apiKey: process.env.WATSONX_API_KEY!,
-  },
+  // OpenAI config
   openaiApiKey: process.env.OPENAI_API_KEY!,
   // Timeouts (in milliseconds)
   timeouts: {

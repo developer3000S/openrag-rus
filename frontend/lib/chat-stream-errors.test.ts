@@ -20,10 +20,10 @@ describe("extractStreamProviderError", () => {
         finish_reason: "error",
         error: {
           message:
-            "Rate limit exceeded for watsonx.ai. Please try again later.",
+            "Rate limit exceeded for the configured provider. Please try again later.",
         },
       }),
-      "Rate limit exceeded for watsonx.ai. Please try again later.",
+      "Rate limit exceeded for the configured provider. Please try again later.",
     );
   });
 
@@ -31,9 +31,9 @@ describe("extractStreamProviderError", () => {
     assert.equal(
       extractStreamProviderError({
         status: "failed",
-        error: "Invalid API key for Anthropic.",
+        error: "Invalid API key.",
       }),
-      "Invalid API key for Anthropic.",
+      "Invalid API key.",
     );
     assert.equal(
       extractStreamProviderError({
@@ -55,7 +55,7 @@ describe("extractStreamProviderError", () => {
         status: "failed",
         error: {
           message:
-            'Failed to authenticate with IBM Watson: {"errorCode":"BXNIM0415E","errorMessage":"Provided API key could not be found."}',
+            'Provider request failed: {"errorCode":"E401","errorMessage":"Provided API key could not be found."}',
         },
       }),
       "Provided API key is Invalid.",
@@ -64,10 +64,10 @@ describe("extractStreamProviderError", () => {
 });
 
 describe("looksLikeProviderErrorContent", () => {
-  it("detects watsonx credential dumps streamed as assistant text", () => {
+  it("detects credential dumps streamed as assistant text", () => {
     assert.equal(
       looksLikeProviderErrorContent(
-        'Failed to initialize IBM WatsonX embedding model: Error: {"errorCode":"BXNIM0415E","errorMessage":"Provided API key could not be found."} An error occurred while generating a response.',
+        'Failed to initialize the embedding model: Error: {"errorCode":"E401","errorMessage":"Provided API key could not be found."} An error occurred while generating a response.',
       ),
       true,
     );
@@ -95,7 +95,7 @@ describe("looksLikeProviderErrorContent", () => {
     );
   });
 
-  it("flags IBM disabled API key messages", () => {
+  it("flags disabled API key messages", () => {
     assert.equal(
       looksLikeProviderErrorContent("Provided API key is disabled."),
       true,
@@ -144,7 +144,7 @@ describe("formatProviderErrorMessage", () => {
   it("strips embedded JSON even with trailing text", () => {
     assert.equal(
       formatProviderErrorMessage(
-        'Failed to authenticate. Error: {"errorCode":"BXNIM0415E","errorMessage":"Provided API key could not be found."} trailing junk',
+        'Failed to authenticate. Error: {"errorCode":"E401","errorMessage":"Provided API key could not be found."} trailing junk',
       ),
       "Provided API key is Invalid.",
     );
@@ -166,7 +166,7 @@ describe("formatProviderErrorMessage", () => {
     );
     assert.equal(
       formatProviderErrorMessage(
-        'Error running graph: Error building Component Embedding Model: Failed to authenticate. Error: {"errorCode":"BXNIM0420E","errorMessage":"Provided API key is disabled."}',
+        'Error running graph: Error building Component Embedding Model: Failed to authenticate. Error: {"errorCode":"E403","errorMessage":"Provided API key is disabled."}',
       ),
       "Provided API key is disabled.",
     );

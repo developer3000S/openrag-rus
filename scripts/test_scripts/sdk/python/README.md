@@ -56,7 +56,7 @@ retrieval has content to find):
 | Suite | Checks |
 |---|---|
 | `settings` | get; update round-trip (re-sets the current chunk_size — never changes configuration) |
-| `models` | list models for openai / anthropic / ollama / watsonx (unavailable providers are skipped) |
+| `models` | list models for openai / ollama / omniroute (unavailable providers are skipped) |
 | `documents` | ingest with wait; ingest no-wait + task polling; ingest from a file object; re-ingest same filename; delete by filename; idempotent delete of a missing file; delete by filter_id |
 | `search` | basic query (with retries for index latency); limit; score_threshold; nonsense query; unicode query |
 | `chat` | non-streaming; streaming via `create(stream=True)`; `stream()` context manager; multi-turn with chat_id; list / get / delete conversations |

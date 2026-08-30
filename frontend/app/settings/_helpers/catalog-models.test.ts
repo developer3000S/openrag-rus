@@ -51,8 +51,8 @@ const catalog = {
       ],
     },
     {
-      key: "anthropic",
-      name: "Anthropic",
+      key: "azure",
+      name: "Azure",
       credential_fields: [
         {
           key: "api_key",
@@ -61,10 +61,10 @@ const catalog = {
           field_type: "password",
         },
       ],
-      model_placeholder: "claude-sonnet-4-5",
+      model_placeholder: "gpt-4o",
       models: [
         {
-          model: "claude-sonnet-4-5",
+          model: "gpt-4o-azure",
           mode: "chat",
           capabilities: ["vision"],
         },
@@ -86,7 +86,7 @@ describe("groupedCatalogOptions", () => {
   it("keeps only configured OpenRAG providers", () => {
     const groups = groupedCatalogOptions(
       catalog,
-      { openai: true, anthropic: false },
+      { openai: true, azure: false },
       "language",
     );
     assert.deepEqual(
@@ -103,19 +103,19 @@ describe("groupedCatalogOptions", () => {
   it("supports arbitrary configured LiteLLM providers", () => {
     const groups = groupedCatalogOptions(
       catalog,
-      { openai: true, anthropic: true, gemini: true },
+      { openai: true, azure: true, gemini: true },
       "language",
     );
     assert.deepEqual(
       groups.map((g) => g.key),
-      ["openai", "anthropic", "gemini"],
+      ["openai", "azure", "gemini"],
     );
   });
 
   it("uses embedding_models for the ingest picker", () => {
     const groups = groupedCatalogOptions(
       catalog,
-      { openai: true, anthropic: true },
+      { openai: true, azure: true },
       "embedding",
     );
     assert.equal(groups.length, 1);
@@ -125,13 +125,13 @@ describe("groupedCatalogOptions", () => {
   it("keeps empty groups when includeEmpty is set", () => {
     const groups = groupedCatalogOptions(
       catalog,
-      { openai: true, anthropic: true },
+      { openai: true, azure: true },
       "embedding",
       { includeEmpty: true },
     );
     assert.deepEqual(
       groups.map((g) => g.key),
-      ["openai", "anthropic"],
+      ["openai", "azure"],
     );
     assert.equal(groups[1].options.length, 0);
   });
@@ -174,7 +174,7 @@ describe("onboardingCredentialFields", () => {
   });
 
   it("preserves LiteLLM required flags", () => {
-    const fields = onboardingCredentialFields(catalog, "anthropic");
+    const fields = onboardingCredentialFields(catalog, "azure");
     assert.equal(fields[0].key, "api_key");
     assert.equal(fields[0].required, false);
   });
@@ -242,11 +242,11 @@ describe("findGroupedSelection", () => {
   it("still resolves by model name when no provider is given", () => {
     const groups = groupedCatalogOptions(
       catalog,
-      { openai: true, anthropic: true },
+      { openai: true, azure: true },
       "language",
     );
-    const selected = findGroupedSelection(groups, "claude-sonnet-4-5");
-    assert.equal(selected?.group.key, "anthropic");
+    const selected = findGroupedSelection(groups, "gpt-4o-azure");
+    assert.equal(selected?.group.key, "azure");
   });
 });
 

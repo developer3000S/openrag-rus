@@ -7,28 +7,46 @@ must reapply LLM model values for every configured LLM provider, not only
 embedding providers.
 """
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from api.settings.langflow_sync import _update_langflow_model_values
 
-# Providers a mock config can advertise as configured. LLM supports anthropic;
-# embeddings do not, so embedding reapplication should skip it.
-_ALL_PROVIDERS = ("openai", "anthropic", "watsonx", "ollama")
-_EXPECTED_LLM_PROVIDERS = {"openai", "anthropic", "watsonx", "ollama"}
-_EXPECTED_EMBEDDING_PROVIDERS = {"openai", "watsonx", "ollama"}
+# Providers a mock config can advertise as configured, plus a custom provider
+# that only serves chat models. LLM supports the custom provider; embeddings
+# do not, so embedding reapplication should skip it.
+_ALL_PROVIDERS = ("openai", "ollama")
+_EXPECTED_LLM_PROVIDERS = {"openai", "ollama", "gemini"}
+_EXPECTED_EMBEDDING_PROVIDERS = {"openai", "ollama"}
 
 
 @pytest.fixture
-def mock_config():
+def mock_config(monkeypatch):
     config = MagicMock()
     for name in _ALL_PROVIDERS:
         getattr(config.providers, name).configured = True
+    config.providers.custom = {"gemini": SimpleNamespace(configured=True)}
     config.knowledge.embedding_provider = "openai"
     config.knowledge.embedding_model = "text-embedding-3-small"
-    config.agent.llm_provider = "anthropic"
-    config.agent.llm_model = "claude-3-5-sonnet-20241022"
+    config.agent.llm_provider = "gemini"
+    config.agent.llm_model = "gemini-2.0-flash"
+
+    # Catalogue shape: gemini offers chat models but no embedding models, so
+    # the embedding reapplication must skip it.
+    monkeypatch.setattr(
+        "services.model_catalog.catalog",
+        lambda: {
+            "providers": [
+                {
+                    "key": "gemini",
+                    "models": [{"model": "gemini-2.0-flash"}],
+                    "embedding_models": [],
+                }
+            ]
+        },
+    )
     return config
 
 
@@ -73,9 +91,8 @@ async def test_fallback_uses_configured_model_only_for_current_llm_provider(mock
     await _update_langflow_model_values(mock_config, flows_service)
 
     llm_calls = _calls_by_kwarg(flows_service, "llm_model")
-    assert llm_calls["anthropic"] == "claude-3-5-sonnet-20241022"
+    assert llm_calls["gemini"] == "gemini-2.0-flash"
     assert llm_calls["openai"] is None
-    assert llm_calls["watsonx"] is None
     assert llm_calls["ollama"] is None
 
 
@@ -88,18 +105,17 @@ async def test_fallback_still_reapplies_embedding_providers(mock_config):
     await _update_langflow_model_values(mock_config, flows_service)
 
     embedding_calls = _calls_by_kwarg(flows_service, "embedding_model")
-    # anthropic is not a valid embedding provider and must be skipped.
+    # gemini is not a valid embedding provider and must be skipped.
     assert set(embedding_calls.keys()) == _EXPECTED_EMBEDDING_PROVIDERS
     assert embedding_calls["openai"] == "text-embedding-3-small"
-    assert embedding_calls["watsonx"] is None
     assert embedding_calls["ollama"] is None
 
 
 @pytest.mark.asyncio
 async def test_fallback_only_reapplies_configured_providers(mock_config):
     """Unconfigured providers must not be touched in the fallback path."""
-    mock_config.providers.watsonx.configured = False
     mock_config.providers.ollama.configured = False
+    mock_config.providers.custom["gemini"].configured = False
 
     flows_service = MagicMock()
     flows_service.change_langflow_model_value = AsyncMock()
@@ -107,7 +123,7 @@ async def test_fallback_only_reapplies_configured_providers(mock_config):
     await _update_langflow_model_values(mock_config, flows_service)
 
     llm_calls = _calls_by_kwarg(flows_service, "llm_model")
-    assert set(llm_calls.keys()) == {"openai", "anthropic"}
+    assert set(llm_calls.keys()) == {"openai"}
 
 
 @pytest.mark.asyncio

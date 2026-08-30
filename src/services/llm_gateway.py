@@ -59,7 +59,7 @@ def _get_config():
 
 
 #: Canonical separator between an OpenRAG provider tag and the model id.
-#: `/` cannot serve as one: watsonx hosts `openai/gpt-oss-120b`, whose own name
+#: `/` cannot serve as one: a vendor-qualified name like `openai/gpt-oss-120b`
 #: begins with a provider key, so a `/`-split routes it to OpenAI and LiteLLM
 #: then rejects the bare `gpt-oss-120b`. No catalogue id has a provider-shaped
 #: prefix before a colon, so `provider:model` stays unambiguous even for ids
@@ -88,7 +88,7 @@ def split_model_id(model: str) -> tuple[str | None, str]:
     # A slash is ambiguous: it separates a legacy tag from its model, but it is
     # also part of vendor-qualified names. When the whole string names exactly
     # one catalogue model, that provider owns it — `openai/gpt-oss-120b` is
-    # watsonx's model, not OpenAI's `gpt-oss-120b`.
+    # that provider's model, not OpenAI's `gpt-oss-120b`.
     from services.model_catalog import catalog_owner
 
     owner = catalog_owner(raw)
@@ -131,16 +131,6 @@ def provider_credentials(provider: str, config=None) -> dict[str, Any]:
         provider_config = getattr(prov, key, None)
         if provider_config is None:
             credentials = {}
-        elif key == "watsonx":
-            credentials = {
-                name: value
-                for name, value in {
-                    "api_key": getattr(provider_config, "api_key", None),
-                    "api_base": getattr(provider_config, "endpoint", None),
-                    "project_id": getattr(provider_config, "project_id", None),
-                }.items()
-                if value
-            }
         elif key == "ollama":
             endpoint = getattr(provider_config, "resolved_endpoint", None) or getattr(
                 provider_config, "endpoint", None
@@ -417,8 +407,8 @@ def _normalise_tool_arguments(value: Any) -> tuple[Any, bool]:
     OpenAI's contract is that `function.arguments` is a string holding a JSON
     *object*. Some models serialise the object and then serialise that string
     again, sending `'"{\\"query\\": \\"x\\"}"'` where `'{"query": "x"}'` was
-    meant (watsonx `ibm/granite-4-h-small` does this; its stablemates on the
-    same deployment do not). Clients parse `arguments` exactly once, so they get
+    meant (a provider with a double-serialisation bug; its model roster does
+    this inconsistently). Clients parse `arguments` exactly once, so they get
     a `str` where a mapping is required: langchain-core rejects the tool call,
     the agent sees no callable tool, and the run ends with no content at all.
     Unwrapping is keyed on the payload opening with a quote, which a real
@@ -528,7 +518,7 @@ async def chat_completions(
             messages=list(body.get("messages") or []),
             stream=stream,
             # OpenAI-compatible clients send OpenAI's full parameter set, but
-            # providers accept different subsets — watsonx rejects
+            # providers accept different subsets — some reject
             # `parallel_tool_calls`, `max_completion_tokens` and `logit_bias`,
             # and LiteLLM raises UnsupportedParamsError rather than ignoring
             # them. A proxy that fans out to many providers must degrade to the

@@ -393,27 +393,6 @@ func (r *OpenRAGReconciler) buildBackendEnv(ctx context.Context, o *openragv1alp
 		}
 	}
 
-	// WatsonX configuration from CR spec
-	if wx := o.Spec.WatsonX; wx != nil {
-		if wx.Endpoint != "" {
-			envVars["WATSONX_ENDPOINT"] = wx.Endpoint
-		}
-		if wx.ProjectID != "" {
-			envVars["WATSONX_PROJECT_ID"] = wx.ProjectID
-		}
-
-		// Read WatsonX API key from user-provided secret
-		if wx.APIKeySecret != nil {
-			apiKey, err := r.readSecretValue(ctx, targetNS, wx.APIKeySecret)
-			if err != nil {
-				return "", nil, fmt.Errorf("failed to read WatsonX API key: %w", err)
-			}
-			if apiKey != "" {
-				envVars["WATSONX_API_KEY"] = apiKey
-			}
-		}
-	}
-
 	// LLM configuration from CR spec
 	if l := o.Spec.LLM; l != nil {
 		if l.Provider != "" {
@@ -539,16 +518,6 @@ func (r *OpenRAGReconciler) buildLangflowEnv(ctx context.Context, o *openragv1al
 		envVars["OPENSEARCH_URL"] = fmt.Sprintf("%s://%s:%d", scheme, os.Host, port)
 		if os.IndexName != "" {
 			envVars["OPENSEARCH_INDEX_NAME"] = os.IndexName
-		}
-	}
-
-	// WatsonX configuration from CR spec
-	if wx := o.Spec.WatsonX; wx != nil {
-		if wx.Endpoint != "" {
-			envVars["WATSONX_ENDPOINT"] = wx.Endpoint
-		}
-		if wx.ProjectID != "" {
-			envVars["WATSONX_PROJECT_ID"] = wx.ProjectID
 		}
 	}
 

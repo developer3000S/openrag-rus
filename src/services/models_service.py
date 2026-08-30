@@ -10,7 +10,6 @@ from api.provider_validation import (
 )
 from config.embedding_constants import OPENAI_DEFAULT_EMBEDDING_MODEL, OPENAI_EMBEDDING_MODEL_PREFIX
 from config.model_constants import (
-    ANTHROPIC_DEFAULT_LANGUAGE_MODEL,
     OLLAMA_DEFAULT_LANGUAGE_MODEL_PATTERN,
     OPENAI_DEFAULT_LANGUAGE_MODEL,
 )
@@ -18,23 +17,6 @@ from utils.container_utils import transform_localhost_url
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-
-def _watsonx_rate_limited(failures: list[tuple[str, int, str]]) -> bool:
-    """Whether a watsonx model-list failure was really throttling.
-
-    watsonx wraps a throttled project-membership lookup in a 403
-    ``user_authorization_failed`` whose message embeds the original
-    ``{"code":429,"error":"Too Many Requests"}``, so the status code alone does
-    not identify it.
-    """
-    for _kind, status, body in failures:
-        if status == 429:
-            return True
-        text = (body or "").lower()
-        if '"code":429' in text or "too many requests" in text:
-            return True
-    return False
 
 
 # OpenAI /v1/models is a flat inventory. These IDs are real products but not
@@ -170,16 +152,6 @@ class ModelsService:
                     except Exception as e:
                         logger.debug(f"Could not fetch OpenAI models for registry: {str(e)}")
 
-                # Anthropic
-                if config.providers.anthropic.api_key:
-                    try:
-                        res = await self.get_anthropic_models(
-                            config.providers.anthropic.api_key, update_index=False
-                        )
-                        self.add_models(res, "anthropic", new_registry)
-                    except Exception as e:
-                        logger.debug(f"Could not fetch Anthropic models for registry: {str(e)}")
-
                 # Ollama
                 if config.providers.ollama.endpoint:
                     try:
@@ -189,19 +161,6 @@ class ModelsService:
                         self.add_models(res, "ollama", new_registry)
                     except Exception as e:
                         logger.debug(f"Could not fetch Ollama models for registry: {str(e)}")
-
-                # WatsonX
-                if config.providers.watsonx.api_key:
-                    try:
-                        res = await self.get_ibm_models(
-                            config.providers.watsonx.endpoint,
-                            config.providers.watsonx.api_key,
-                            config.providers.watsonx.project_id,
-                            update_index=False,
-                        )
-                        self.add_models(res, "watsonx", new_registry)
-                    except Exception as e:
-                        logger.debug(f"Could not fetch WatsonX models for registry: {str(e)}")
 
                 from services.model_catalog import catalog
 
@@ -292,25 +251,6 @@ class ModelsService:
         return any(
             x in model_lower for x in ["gpt-4o", "gpt-5", "vision", "o3", "o4", "gpt-4-turbo", "o1"]
         )
-
-    def _anthropic_supports_images(self, model_data: dict) -> bool:
-        capabilities = model_data.get("capabilities", {})
-        if isinstance(capabilities, dict):
-            image_input = capabilities.get("image_input", {})
-            if isinstance(image_input, dict) and image_input.get("supported") is True:
-                return True
-        # Fallback to model name matching if capabilities is not populated
-        model_id = model_data.get("id", "").lower()
-        return any(x in model_id for x in ["claude-3", "claude-4", "opus", "sonnet", "haiku"])
-
-    def _watsonx_supports_images(self, model_data: dict) -> bool:
-        model_id = model_data.get("model_id", "").lower()
-        if any(x in model_id for x in ["vision", "pixtral", "qwen-vl", "qwen2-vl", "multimodal"]):
-            return True
-        short_desc = model_data.get("short_description", "").lower()
-        if "vision" in short_desc or "multimodal" in short_desc or "image" in short_desc:
-            return True
-        return False
 
     def _ollama_supports_images(self, json_data: dict) -> bool:
         capabilities = json_data.get("capabilities", [])
@@ -415,76 +355,6 @@ class ModelsService:
 
         except Exception as e:
             logger.error(f"Error fetching OpenAI models: {str(e)}")
-            raise
-
-    async def get_anthropic_models(
-        self, api_key: str, update_index: bool = True
-    ) -> dict[str, list[dict[str, str]]]:
-        """Fetch available models from Anthropic API"""
-        try:
-            headers = {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            }
-
-            # Validate API key and return all models from Anthropic's chat-oriented list API
-            response = await _http_request_with_retry(
-                "GET",
-                "https://api.anthropic.com/v1/models",
-                headers=headers,
-                timeout=30.0,
-            )
-
-            if response.status_code == 200:
-                data = response.json()
-                models = data.get("data", [])
-
-                # Anthropic /v1/models is already chat-oriented; pass through live list.
-                language_models = []
-
-                for model in models:
-                    model_id = model.get("id", "")
-                    if not model_id:
-                        continue
-                    language_models.append(
-                        {
-                            "value": model_id,
-                            "label": model.get("display_name", model_id),
-                            "default": False,
-                            "supports_images": self._anthropic_supports_images(model),
-                        }
-                    )
-
-                chosen_language = resolve_preferred_model(
-                    ANTHROPIC_DEFAULT_LANGUAGE_MODEL, language_models
-                )
-                for entry in language_models:
-                    entry["default"] = entry["value"] == chosen_language
-
-                # Sort by default first, then by name
-                language_models.sort(key=lambda x: (not x.get("default", False), x["value"]))
-
-                if not language_models:
-                    logger.warning(
-                        "Anthropic API key is valid but no models were returned.",
-                    )
-
-                result = {
-                    "language_models": language_models,
-                    "embedding_models": [],
-                }
-
-                if update_index:
-                    await self.add_models_to_registry(result, "anthropic")
-
-                return result
-            else:
-                logger.error(f"Failed to validate Anthropic API key: {response.status_code}")
-                raise Exception(format_provider_error_message(_extract_error_details(response)))
-
-        except Exception as e:
-            logger.error(f"Error fetching Anthropic models: {str(e)}")
             raise
 
     async def get_ollama_models(
@@ -606,187 +476,3 @@ class ModelsService:
             logger.error(f"Error fetching Ollama models: {str(e)}")
             raise
 
-    async def get_ibm_models(
-        self,
-        endpoint: str = None,
-        api_key: str = None,
-        project_id: str = None,
-        update_index: bool = True,
-    ) -> dict[str, list[dict[str, str]]]:
-        """Fetch available models from IBM Watson API"""
-        try:
-            # Use provided endpoint or default
-            watson_endpoint = endpoint
-
-            # Get bearer token from IBM IAM
-            bearer_token = None
-            if api_key:
-                async with httpx.AsyncClient() as client:
-                    token_response = await client.post(
-                        "https://iam.cloud.ibm.com/identity/token",
-                        headers={"Content-Type": "application/x-www-form-urlencoded"},
-                        data={
-                            "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                            "apikey": api_key,
-                        },
-                        timeout=10.0,
-                    )
-
-                    if token_response.status_code != 200:
-                        raise Exception(
-                            format_provider_error_message(_extract_error_details(token_response))
-                        )
-
-                    token_data = token_response.json()
-                    bearer_token = token_data.get("access_token")
-
-                    if not bearer_token:
-                        raise Exception("No access_token in IBM IAM response")
-
-            # Prepare headers for authentication
-            headers = {
-                "Content-Type": "application/json",
-            }
-            if bearer_token:
-                headers["Authorization"] = f"Bearer {bearer_token}"
-            if project_id:
-                headers["Project-ID"] = project_id
-
-            # Fetch foundation models using the correct endpoint
-            models_url = f"{watson_endpoint}/ml/v1/foundation_model_specs"
-
-            language_models = []
-            embedding_models = []
-            # (kind, status, body) for each model-list call that did not return 200.
-            fetch_failures: list[tuple[str, int, str]] = []
-
-            async with httpx.AsyncClient() as client:
-                # Fetch text chat models
-                text_params = {
-                    "version": "2026-04-15",
-                    "filters": "function_text_chat,!lifecycle_withdrawn:and",
-                }
-                if project_id:
-                    text_params["project_id"] = project_id
-
-                text_response = await client.get(
-                    models_url, params=text_params, headers=headers, timeout=10.0
-                )
-
-                if text_response.status_code == 200:
-                    text_data = text_response.json()
-                    text_models = text_data.get("resources", [])
-                    logger.info(f"Retrieved {len(text_models)} text chat models from Watson API")
-
-                    for i, model in enumerate(text_models):
-                        model_id = model.get("model_id", "")
-                        model_name = model.get("name", model_id)
-
-                        if model.get("input_tier") == "tech_preview":
-                            continue
-
-                        language_models.append(
-                            {
-                                "value": model_id,
-                                "label": model_name or model_id,
-                                "default": i == 0,  # First model is default
-                                "supports_images": self._watsonx_supports_images(model),
-                            }
-                        )
-                else:
-                    fetch_failures.append(
-                        ("text chat", text_response.status_code, text_response.text)
-                    )
-                    logger.warning(
-                        f"Failed to retrieve text chat models. Status: {text_response.status_code}, "
-                        f"Response: {text_response.text[:200]}"
-                    )
-
-                # Fetch embedding models
-                embed_params = {
-                    "version": "2026-04-15",
-                    "filters": "function_embedding,!lifecycle_withdrawn:and",
-                }
-                if project_id:
-                    embed_params["project_id"] = project_id
-
-                embed_response = await client.get(
-                    models_url, params=embed_params, headers=headers, timeout=10.0
-                )
-
-                if embed_response.status_code == 200:
-                    embed_data = embed_response.json()
-                    embed_models = embed_data.get("resources", [])
-                    logger.info(f"Retrieved {len(embed_models)} embedding models from Watson API")
-
-                    for i, model in enumerate(embed_models):
-                        model_id = model.get("model_id", "")
-                        model_name = model.get("name", model_id)
-
-                        if model.get("input_tier") == "tech_preview":
-                            continue
-
-                        embedding_models.append(
-                            {
-                                "value": model_id,
-                                "label": model_name or model_id,
-                                "default": i == 0,  # First model is default
-                            }
-                        )
-                else:
-                    fetch_failures.append(
-                        ("embedding", embed_response.status_code, embed_response.text)
-                    )
-                    logger.warning(
-                        f"Failed to retrieve embedding models. Status: {embed_response.status_code}, "
-                        f"Response: {embed_response.text[:200]}"
-                    )
-
-            # Lightweight validation: API key is already validated by successfully getting bearer token
-            # No need to make a generation request that consumes credits
-            if bearer_token:
-                logger.info("IBM Watson API key validated successfully without consuming credits")
-            else:
-                logger.warning("No bearer token available - API key validation may have failed")
-
-            if not language_models and not embedding_models:
-                # An empty list means "misconfigured project" only when the calls
-                # actually succeeded. watsonx reports throttling as a 403 whose
-                # body carries the real {"code":429,"error":"Too Many Requests"},
-                # and blaming WML setup for that sends operators to the wrong page.
-                if _watsonx_rate_limited(fetch_failures):
-                    error_msg = (
-                        "watsonx.ai is rate limiting this account, so its model list "
-                        "could not be retrieved. Wait a few minutes and try again."
-                    )
-                elif fetch_failures:
-                    statuses = ", ".join(
-                        f"{kind} models: HTTP {status}" for kind, status, _ in fetch_failures
-                    )
-                    error_msg = (
-                        f"watsonx.ai did not return a model list ({statuses}). "
-                        "Check that the API key is authorized for the configured project."
-                    )
-                else:
-                    error_msg = (
-                        "API key is valid, but no models are available. "
-                        "This usually means your Watson Machine Learning (WML) project is not properly configured. "
-                        "Please ensure: (1) Your watsonx.ai project is associated with a WML service instance, "
-                        "and (2) The project has access to foundation models. "
-                        "Visit your watsonx.ai project settings to configure the WML service association."
-                    )
-                raise Exception(error_msg)
-
-            result = {
-                "language_models": language_models,
-                "embedding_models": embedding_models,
-            }
-
-            if update_index:
-                await self.add_models_to_registry(result, "watsonx")
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Error fetching IBM models: {str(e)}")
-            raise

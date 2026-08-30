@@ -50,9 +50,7 @@ export function useProviderHealth() {
 
 const providerTitleMap: Record<ModelProvider, string> = {
   openai: "OpenAI",
-  anthropic: "Anthropic",
   ollama: "Ollama",
-  watsonx: "IBM watsonx.ai",
   omniroute: "OMNIROUTE",
   local: "Local",
 };
@@ -77,7 +75,8 @@ export function ProviderHealthBanner({ className }: ProviderHealthBannerProps) {
     let errorMessage: string;
 
     // Prefer a single shared provider when LLM and embedding fail the same way
-    // (e.g. both watsonx auth failures), so the banner stays readable.
+    // (e.g. the same credential causes both auth failures), so the banner stays
+    // readable.
     let showMultipleErrors = false;
 
     if (llmError && embeddingError) {

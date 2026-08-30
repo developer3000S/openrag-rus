@@ -76,8 +76,8 @@ spec:
 
       # Docling configuration for the serve API
       config:
-        # Required for OpenRAG's Docling VLM pipeline (remote OpenAI/watsonx
-        # vision models). Harmless when VLM is not used.
+        # Required for OpenRAG's Docling VLM pipeline (remote vision
+        # models). Harmless when VLM is not used.
         extraEnv:
           - name: "DOCLING_SERVE_ENABLE_REMOTE_SERVICES"
             value: "true"

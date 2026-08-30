@@ -68,9 +68,7 @@ export function AgentSettingsSection() {
   const configuredProviders = useMemo(
     () => ({
       openai: settings.providers?.openai?.configured === true,
-      anthropic: settings.providers?.anthropic?.configured === true,
       ollama: settings.providers?.ollama?.configured === true,
-      watsonx: settings.providers?.watsonx?.configured === true,
       ...Object.fromEntries(
         Object.entries(settings.providers?.custom ?? {}).map(
           ([provider, value]) => [provider, value.configured === true],

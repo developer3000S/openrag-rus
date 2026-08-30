@@ -427,15 +427,8 @@ def register_internal_routes(app: FastAPI):
         "/models/openai", models.get_openai_models, methods=["POST"], tags=["internal"]
     )
     app.add_api_route(
-        "/models/anthropic",
-        models.get_anthropic_models,
-        methods=["POST"],
-        tags=["internal"],
-    )
-    app.add_api_route(
         "/models/ollama", models.get_ollama_models, methods=["GET"], tags=["internal"]
     )
-    app.add_api_route("/models/ibm", models.get_ibm_models, methods=["POST"], tags=["internal"])
     app.add_api_route(
         "/models/catalog", models.get_model_catalog, methods=["GET"], tags=["internal"]
     )

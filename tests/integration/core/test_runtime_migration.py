@@ -129,8 +129,6 @@ def _write_legacy_files(*, config_dir: Path, data_dir: Path) -> None:
                         "configured": True,
                         "api_key": "legacy-openai-key",
                     },
-                    "anthropic": {},
-                    "watsonx": {},
                     "ollama": {},
                 },
                 "knowledge": {

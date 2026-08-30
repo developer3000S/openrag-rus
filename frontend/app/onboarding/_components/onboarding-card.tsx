@@ -22,8 +22,6 @@ import {
   LLM_PROVIDER_ORDER,
 } from "@/app/settings/_helpers/model-helpers";
 import { useDoclingHealth } from "@/components/docling-health-banner";
-import AnthropicLogo from "@/components/icons/anthropic-logo";
-import IBMLogo from "@/components/icons/ibm-logo";
 import OllamaLogo from "@/components/icons/ollama-logo";
 import OpenAILogo from "@/components/icons/openai-logo";
 import { Button } from "@/components/ui/button";
@@ -42,8 +40,6 @@ import {
 import { formatProviderErrorMessage } from "@/lib/chat-stream-errors";
 import { cn } from "@/lib/utils";
 import { AnimatedProviderSteps } from "./animated-provider-steps";
-import { AnthropicOnboarding } from "./anthropic-onboarding";
-import { IBMOnboarding } from "./ibm-onboarding";
 import { OllamaOnboarding } from "./ollama-onboarding";
 import { OpenAIOnboarding } from "./openai-onboarding";
 import { TabTrigger } from "./tab-trigger";
@@ -76,7 +72,7 @@ const OnboardingCard = ({
   const isCloudBrand = useIsCloudBrand();
 
   const [modelProvider, setModelProvider] = useState<string>(
-    isEmbedding ? "openai" : "anthropic",
+    isEmbedding ? "openai" : "openai",
   );
 
   // Read model-fetch loading from React Query instead of syncing it up from children.
@@ -103,22 +99,10 @@ const OnboardingCard = ({
 
       for (const provider of providerOrder) {
         if (
-          provider === "anthropic" &&
-          currentSettings.providers.anthropic?.has_api_key
-        ) {
-          setModelProvider("anthropic");
-          break;
-        } else if (
           provider === "openai" &&
           currentSettings.providers.openai?.has_api_key
         ) {
           setModelProvider("openai");
-          break;
-        } else if (
-          provider === "watsonx" &&
-          currentSettings.providers.watsonx?.has_api_key
-        ) {
-          setModelProvider("watsonx");
           break;
         } else if (
           provider === "ollama" &&
@@ -148,10 +132,6 @@ const OnboardingCard = ({
     // Check if provider has been explicitly configured (not just from env vars)
     if (provider === "openai") {
       return currentSettings.providers.openai?.configured === true;
-    } else if (provider === "anthropic") {
-      return currentSettings.providers.anthropic?.configured === true;
-    } else if (provider === "watsonx") {
-      return currentSettings.providers.watsonx?.configured === true;
     } else if (provider === "ollama") {
       return currentSettings.providers.ollama?.configured === true;
     }
@@ -173,10 +153,6 @@ const OnboardingCard = ({
     llm_model: "",
     // Provider-specific fields will be set by provider components
     openai_api_key: "",
-    anthropic_api_key: "",
-    watsonx_api_key: "",
-    watsonx_endpoint: "",
-    watsonx_project_id: "",
     ollama_endpoint: "",
   });
 
@@ -460,18 +436,6 @@ const OnboardingCard = ({
     // Add provider-specific credentials based on the selected provider
     if (currentProvider === "openai" && settings.openai_api_key) {
       onboardingData.openai_api_key = settings.openai_api_key;
-    } else if (currentProvider === "anthropic" && settings.anthropic_api_key) {
-      onboardingData.anthropic_api_key = settings.anthropic_api_key;
-    } else if (currentProvider === "watsonx") {
-      if (settings.watsonx_api_key) {
-        onboardingData.watsonx_api_key = settings.watsonx_api_key;
-      }
-      if (settings.watsonx_endpoint) {
-        onboardingData.watsonx_endpoint = settings.watsonx_endpoint;
-      }
-      if (settings.watsonx_project_id) {
-        onboardingData.watsonx_project_id = settings.watsonx_project_id;
-      }
     } else if (currentProvider === "ollama" && settings.ollama_endpoint) {
       onboardingData.ollama_endpoint = settings.ollama_endpoint;
     }
@@ -534,41 +498,6 @@ const OnboardingCard = ({
                 onValueChange={handleSetModelProvider}
               >
                 <TabsList className="mb-4">
-                  {!isEmbedding && (
-                    <TabsTrigger
-                      value="anthropic"
-                      data-testid={`anthropic-llm-tab`}
-                      className={cn(
-                        error &&
-                          modelProvider === "anthropic" &&
-                          "data-[state=active]:border-destructive",
-                      )}
-                    >
-                      <TabTrigger
-                        selected={modelProvider === "anthropic"}
-                        isLoading={isLoadingModels}
-                      >
-                        <div
-                          className={cn(
-                            "flex items-center justify-center gap-2 w-8 h-8 rounded-none border",
-                            modelProvider === "anthropic"
-                              ? "bg-[#D97757]"
-                              : "bg-muted",
-                          )}
-                        >
-                          <AnthropicLogo
-                            className={cn(
-                              "w-4 h-4 shrink-0",
-                              modelProvider === "anthropic"
-                                ? "text-black"
-                                : "text-muted-foreground",
-                            )}
-                          />
-                        </div>
-                        Anthropic
-                      </TabTrigger>
-                    </TabsTrigger>
-                  )}
                   <TabsTrigger
                     value="openai"
                     className={cn(
@@ -598,39 +527,6 @@ const OnboardingCard = ({
                         />
                       </div>
                       OpenAI
-                    </TabTrigger>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="watsonx"
-                    data-testid={`watsonx-${isEmbedding ? "embedding" : "llm"}-tab`}
-                    className={cn(
-                      error &&
-                        modelProvider === "watsonx" &&
-                        "data-[state=active]:border-destructive",
-                    )}
-                  >
-                    <TabTrigger
-                      selected={modelProvider === "watsonx"}
-                      isLoading={isLoadingModels}
-                    >
-                      <div
-                        className={cn(
-                          "flex items-center justify-center gap-2 w-8 h-8 rounded-none border",
-                          modelProvider === "watsonx"
-                            ? "bg-[#1063FE]"
-                            : "bg-muted",
-                        )}
-                      >
-                        <IBMLogo
-                          className={cn(
-                            "w-4 h-4 shrink-0",
-                            modelProvider === "watsonx"
-                              ? "text-white"
-                              : "text-muted-foreground",
-                          )}
-                        />
-                      </div>
-                      IBM watsonx.ai
                     </TabTrigger>
                   </TabsTrigger>
                   {!isCloudBrand && (
@@ -669,18 +565,6 @@ const OnboardingCard = ({
                     </TabsTrigger>
                   )}
                 </TabsList>
-                {!isEmbedding && (
-                  <TabsContent value="anthropic">
-                    <AnthropicOnboarding
-                      setSettings={setSettings}
-                      isEmbedding={isEmbedding}
-                      hasEnvApiKey={
-                        currentSettings?.providers?.anthropic?.has_api_key ===
-                        true
-                      }
-                    />
-                  </TabsContent>
-                )}
                 <TabsContent value="openai">
                   <OpenAIOnboarding
                     setSettings={setSettings}
@@ -690,24 +574,6 @@ const OnboardingCard = ({
                     }
                     alreadyConfigured={
                       providerAlreadyConfigured && modelProvider === "openai"
-                    }
-                  />
-                </TabsContent>
-                <TabsContent value="watsonx">
-                  <IBMOnboarding
-                    setSettings={setSettings}
-                    isEmbedding={isEmbedding}
-                    alreadyConfigured={
-                      providerAlreadyConfigured && modelProvider === "watsonx"
-                    }
-                    existingEndpoint={
-                      currentSettings?.providers?.watsonx?.endpoint
-                    }
-                    existingProjectId={
-                      currentSettings?.providers?.watsonx?.project_id
-                    }
-                    hasEnvApiKey={
-                      currentSettings?.providers?.watsonx?.has_api_key === true
                     }
                   />
                 </TabsContent>

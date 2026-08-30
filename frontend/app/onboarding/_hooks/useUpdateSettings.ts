@@ -7,7 +7,6 @@ interface ConfigValues {
   /** When true, clear the provider key (e.g. environment-key mode). */
   clearApiKey?: boolean;
   endpoint?: string;
-  projectId?: string;
   languageModel?: string;
   embeddingModel?: string;
 }
@@ -56,32 +55,11 @@ export function useUpdateSettings(
           config.clearApiKey,
           prev.openai_api_key,
         );
-      } else if (provider === "anthropic") {
-        updatedSettings.anthropic_api_key = resolveApiKey(
-          config.apiKey,
-          config.clearApiKey,
-          prev.anthropic_api_key,
-        );
-      } else if (provider === "watsonx") {
-        updatedSettings.watsonx_api_key = resolveApiKey(
-          config.apiKey,
-          config.clearApiKey,
-          prev.watsonx_api_key,
-        );
       }
 
       // Map provider-specific endpoints
-      if (config.endpoint) {
-        if (provider === "watsonx") {
-          updatedSettings.watsonx_endpoint = config.endpoint;
-        } else if (provider === "ollama") {
-          updatedSettings.ollama_endpoint = config.endpoint;
-        }
-      }
-
-      // Map project ID (WatsonX only)
-      if (config.projectId && provider === "watsonx") {
-        updatedSettings.watsonx_project_id = config.projectId;
+      if (config.endpoint && provider === "ollama") {
+        updatedSettings.ollama_endpoint = config.endpoint;
       }
 
       return updatedSettings;
@@ -91,7 +69,6 @@ export function useUpdateSettings(
     config.apiKey,
     config.clearApiKey,
     config.endpoint,
-    config.projectId,
     config.languageModel,
     config.embeddingModel,
     setSettings,

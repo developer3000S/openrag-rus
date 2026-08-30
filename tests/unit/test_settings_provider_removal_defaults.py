@@ -13,19 +13,15 @@ from api.settings.helpers import (
 )
 from config.config_manager import (
     AgentConfig,
-    AnthropicConfig,
+    GenericProviderConfig,
     KnowledgeConfig,
     OllamaConfig,
     OnboardingState,
     OpenAIConfig,
     OpenRAGConfig,
     ProvidersConfig,
-    WatsonXConfig,
 )
-from config.model_constants import (
-    ANTHROPIC_DEFAULT_LANGUAGE_MODEL,
-    OPENAI_DEFAULT_LANGUAGE_MODEL,
-)
+from config.model_constants import OPENAI_DEFAULT_LANGUAGE_MODEL
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -35,9 +31,8 @@ from config.model_constants import (
 def _make_config(
     *,
     openai=False,
-    anthropic=False,
     ollama=False,
-    watsonx=False,
+    custom: list[str] | None = None,
     llm_provider="openai",
     llm_model="gpt-5.4-mini",
     embedding_provider="openai",
@@ -47,16 +42,16 @@ def _make_config(
     return OpenRAGConfig(
         providers=ProvidersConfig(
             openai=OpenAIConfig(api_key="sk-test" if openai else "", configured=openai),
-            anthropic=AnthropicConfig(api_key="sk-ant" if anthropic else "", configured=anthropic),
             ollama=OllamaConfig(
                 endpoint="http://localhost:11434" if ollama else "", configured=ollama
             ),
-            watsonx=WatsonXConfig(
-                api_key="wx-key" if watsonx else "",
-                endpoint="https://us-south.ml.cloud.ibm.com" if watsonx else "",
-                project_id="pid" if watsonx else "",
-                configured=watsonx,
-            ),
+            custom={
+                name: GenericProviderConfig(
+                    credentials={"api_key": f"{name}-key", "api_base": f"https://{name}.example"},
+                    configured=True,
+                )
+                for name in (custom or [])
+            },
         ),
         knowledge=KnowledgeConfig(
             embedding_model=embedding_model,
@@ -80,14 +75,8 @@ class TestDefaultLlmModel:
     def test_openai_returns_static_default(self):
         assert _default_llm_model("openai") == OPENAI_DEFAULT_LANGUAGE_MODEL
 
-    def test_anthropic_returns_static_default(self):
-        assert _default_llm_model("anthropic") == ANTHROPIC_DEFAULT_LANGUAGE_MODEL
-
     def test_ollama_returns_empty(self):
         assert _default_llm_model("ollama") == ""
-
-    def test_watsonx_returns_empty(self):
-        assert _default_llm_model("watsonx") == ""
 
     def test_unknown_provider_returns_empty(self):
         assert _default_llm_model("nonexistent") == ""
@@ -107,9 +96,6 @@ class TestDefaultEmbeddingModel:
     def test_ollama_returns_empty(self):
         assert _default_embedding_model("ollama") == ""
 
-    def test_watsonx_returns_empty(self):
-        assert _default_embedding_model("watsonx") == ""
-
     def test_unknown_provider_returns_empty(self):
         assert _default_embedding_model("nonexistent") == ""
 
@@ -127,7 +113,7 @@ class TestDefaultEmbeddingModel:
         for a provider it wasn't declared for."""
         monkeypatch.setenv("EMBEDDING_PROVIDER", "openai")
         monkeypatch.setenv("EMBEDDING_MODEL", "text-embedding-3-large")
-        assert _default_embedding_model("watsonx") == ""
+        assert _default_embedding_model("gemini") == ""
 
 
 # ---------------------------------------------------------------------------
@@ -137,22 +123,29 @@ class TestDefaultEmbeddingModel:
 
 class TestFirstConfiguredLlmProvider:
     def test_excludes_removed_provider(self):
-        config = _make_config(openai=True, anthropic=True)
-        assert _first_configured_llm_provider(config, "openai") == "anthropic"
+        config = _make_config(openai=True, ollama=True)
+        assert _first_configured_llm_provider(config, "openai") == "ollama"
 
     def test_respects_priority_order(self):
-        """Order is openai > anthropic > watsonx > ollama."""
-        config = _make_config(openai=True, anthropic=True, watsonx=True, ollama=True)
-        assert _first_configured_llm_provider(config, "openai") == "anthropic"
-        assert _first_configured_llm_provider(config, "anthropic") == "openai"
+        """Order is openai > ollama, then configured custom providers."""
+        config = _make_config(openai=True, ollama=True, custom=["gemini"])
+        assert _first_configured_llm_provider(config, "openai") == "ollama"
+        assert _first_configured_llm_provider(config, "ollama") == "openai"
 
     def test_skips_unconfigured(self):
         config = _make_config(ollama=True)
         assert _first_configured_llm_provider(config, "openai") == "ollama"
 
+    def test_custom_provider_is_a_fallback(self):
+        config = _make_config(openai=True, ollama=True, custom=["gemini"])
+        assert _first_configured_llm_provider(config, "openai") == "ollama"
+        # When the first-class providers are removed/excluded, custom wins.
+        config = _make_config(openai=True, custom=["gemini"])
+        assert _first_configured_llm_provider(config, "openai") == "gemini"
+
     def test_falls_back_to_openai_when_none_configured(self):
         config = _make_config()
-        assert _first_configured_llm_provider(config, "anthropic") == "openai"
+        assert _first_configured_llm_provider(config, "ollama") == "openai"
 
 
 # ---------------------------------------------------------------------------
@@ -164,16 +157,6 @@ class TestFirstConfiguredEmbeddingProvider:
     def test_excludes_removed_provider(self):
         config = _make_config(openai=True, ollama=True)
         assert _first_configured_embedding_provider(config, "openai") == "ollama"
-
-    def test_anthropic_never_returned(self):
-        """Anthropic has no embedding models; it must never be a fallback."""
-        config = _make_config(anthropic=True, ollama=True)
-        assert _first_configured_embedding_provider(config, "openai") == "ollama"
-
-    def test_respects_priority_order(self):
-        """Order is openai > watsonx > ollama."""
-        config = _make_config(openai=True, watsonx=True, ollama=True)
-        assert _first_configured_embedding_provider(config, "openai") == "watsonx"
 
     def test_returns_empty_when_none_configured(self):
         config = _make_config()
@@ -196,28 +179,6 @@ class TestProviderRemovalLlmDefault:
             config.agent.llm_provider = fb
             config.agent.llm_model = _default_llm_model(fb)
 
-    def test_remove_anthropic_falls_back_to_openai_model(self):
-        config = _make_config(
-            openai=True,
-            anthropic=True,
-            llm_provider="anthropic",
-            llm_model="claude-sonnet-4-6",
-        )
-        self._simulate_llm_removal(config, "anthropic")
-        assert config.agent.llm_provider == "openai"
-        assert config.agent.llm_model == OPENAI_DEFAULT_LANGUAGE_MODEL
-
-    def test_remove_openai_falls_back_to_anthropic_model(self):
-        config = _make_config(
-            openai=True,
-            anthropic=True,
-            llm_provider="openai",
-            llm_model="gpt-5.4-mini",
-        )
-        self._simulate_llm_removal(config, "openai")
-        assert config.agent.llm_provider == "anthropic"
-        assert config.agent.llm_model == ANTHROPIC_DEFAULT_LANGUAGE_MODEL
-
     def test_remove_openai_falls_back_to_ollama_empty_model(self):
         """Ollama models are dynamic — backend returns empty, frontend picks."""
         config = _make_config(
@@ -230,14 +191,25 @@ class TestProviderRemovalLlmDefault:
         assert config.agent.llm_provider == "ollama"
         assert config.agent.llm_model == ""
 
-    def test_remove_watsonx_falls_back_to_openai_model(self):
+    def test_remove_ollama_falls_back_to_openai_model(self):
         config = _make_config(
             openai=True,
-            watsonx=True,
-            llm_provider="watsonx",
-            llm_model="ibm/granite-13b-chat-v2",
+            ollama=True,
+            llm_provider="ollama",
+            llm_model="llama3.1",
         )
-        self._simulate_llm_removal(config, "watsonx")
+        self._simulate_llm_removal(config, "ollama")
+        assert config.agent.llm_provider == "openai"
+        assert config.agent.llm_model == OPENAI_DEFAULT_LANGUAGE_MODEL
+
+    def test_remove_custom_provider_falls_back_to_openai_model(self):
+        config = _make_config(
+            openai=True,
+            custom=["gemini"],
+            llm_provider="gemini",
+            llm_model="gemini-2.0-flash",
+        )
+        self._simulate_llm_removal(config, "gemini")
         assert config.agent.llm_provider == "openai"
         assert config.agent.llm_model == OPENAI_DEFAULT_LANGUAGE_MODEL
 
@@ -245,11 +217,11 @@ class TestProviderRemovalLlmDefault:
         """If the removed provider wasn't the active one, nothing changes."""
         config = _make_config(
             openai=True,
-            anthropic=True,
+            ollama=True,
             llm_provider="openai",
             llm_model="gpt-5.4-mini",
         )
-        self._simulate_llm_removal(config, "anthropic")
+        self._simulate_llm_removal(config, "ollama")
         assert config.agent.llm_provider == "openai"
         assert config.agent.llm_model == "gpt-5.4-mini"
 
@@ -281,27 +253,28 @@ class TestProviderRemovalEmbeddingDefault:
         assert config.knowledge.embedding_provider == "openai"
         assert config.knowledge.embedding_model == ""
 
-    def test_remove_openai_falls_back_to_watsonx_empty_embedding(self):
+    def test_remove_openai_falls_back_to_ollama_empty_embedding(self):
         config = _make_config(
             openai=True,
-            watsonx=True,
+            ollama=True,
             embedding_provider="openai",
             embedding_model="text-embedding-3-small",
         )
         self._simulate_embedding_removal(config, "openai")
-        assert config.knowledge.embedding_provider == "watsonx"
+        assert config.knowledge.embedding_provider == "ollama"
         assert config.knowledge.embedding_model == ""
 
-    def test_remove_watsonx_falls_back_to_openai_empty_embedding(self):
-        """Same as above: watsonx -> openai fallback must not guess a model."""
+    def test_remove_openai_falls_back_to_custom_provider_empty_embedding(self):
         config = _make_config(
             openai=True,
-            watsonx=True,
-            embedding_provider="watsonx",
-            embedding_model="ibm/slate-125m-english-rtrvr",
+            ollama=True,
+            custom=["gemini"],
+            embedding_provider="openai",
+            embedding_model="text-embedding-3-small",
         )
-        self._simulate_embedding_removal(config, "watsonx")
-        assert config.knowledge.embedding_provider == "openai"
+        self._simulate_embedding_removal(config, "openai")
+        # Custom providers only qualify when the catalogue lists embedding models.
+        assert config.knowledge.embedding_provider == "ollama"
         assert config.knowledge.embedding_model == ""
 
     def test_no_change_if_different_provider_removed(self):

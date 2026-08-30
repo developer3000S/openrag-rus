@@ -1,8 +1,8 @@
 import { expect, type Page } from "@playwright/test";
 import path from "path";
 
-export type LLMProvider = "openai" | "anthropic" | "watsonx" | "ollama";
-export type EmbeddingProvider = "openai" | "watsonx" | "ollama";
+export type LLMProvider = "openai" | "ollama";
+export type EmbeddingProvider = "openai" | "ollama";
 
 export async function completeOnboarding(
   page: Page,
@@ -23,15 +23,9 @@ export async function completeOnboarding(
     if (!process.env[envVarName]) {
       throw new Error(`${envVarName} is not set`);
     }
-    if (provider === "watsonx" && !process.env.WATSONX_PROJECT_ID) {
-      throw new Error("WATSONX_PROJECT_ID is not set");
-    }
   };
 
   checkCredentials(llmProvider);
-  if ((embeddingProvider as string) === "anthropic") {
-    throw new Error("Anthropic is not a valid embedding provider");
-  }
   checkCredentials(embeddingProvider);
 
   // Go to the base URL (frontend)
@@ -107,17 +101,6 @@ export async function completeOnboarding(
       if ((await apiKeyField.isVisible()) && (await apiKeyField.isEnabled())) {
         const apiKey = process.env[`${provider.toUpperCase()}_API_KEY`];
         await apiKeyField.fill(apiKey!);
-      }
-
-      if (provider === "watsonx") {
-        const projectIdField = page.getByTestId("project-id");
-        if (
-          (await projectIdField.isVisible()) &&
-          (await projectIdField.isEnabled())
-        ) {
-          const projectId = process.env.WATSONX_PROJECT_ID;
-          await projectIdField.fill(projectId!);
-        }
       }
     }
 

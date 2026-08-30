@@ -1,8 +1,8 @@
 """Provider errors must reach the client as a final stream error chunk.
 
 These tests mock the upstream stream to raise exceptions shaped like real
-provider failures (watsonx rate limit, invalid key, permission). That proves
-the yield path without hardcoding a raise in production code.
+provider failures (rate limit, invalid key, permission). That proves the
+yield path without hardcoding a raise in production code.
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ def test_format_provider_error_message_extracts_embedded_json():
     )
 
 
-def test_format_provider_error_message_extracts_ibm_iam_error_message():
+def test_format_provider_error_message_extracts_error_message_field():
     raw = (
-        'Failed to authenticate with IBM Watson: {"errorCode":"BXNIM0415E",'
+        'Failed to authenticate with the upstream provider: {"errorCode":"E401",'
         '"errorMessage":"Provided API key could not be found.",'
-        '"context":{"requestId":"abc","url":"https://iam.cloud.ibm.com"}}'
+        '"context":{"requestId":"abc","url":"https://api.example.com"}}'
     )
     assert agent_module._format_provider_error_message(Exception(raw)) == (
         "Provided API key is Invalid."
@@ -37,7 +37,7 @@ def test_format_provider_error_message_extracts_ibm_iam_error_message():
 
 
 def test_format_provider_error_message_keeps_plain_text():
-    msg = "Rate limit exceeded for watsonx.ai. Please try again later."
+    msg = "Rate limit exceeded for the configured provider. Please try again later."
     assert agent_module._format_provider_error_message(Exception(msg)) == msg
 
 
@@ -49,7 +49,7 @@ def test_provider_error_display_text_keeps_partial_answer():
 
 def test_provider_error_display_text_drops_error_like_partial():
     partial = (
-        "Failed to initialize IBM WatsonX embedding model. Error: "
+        "Failed to initialize the embedding model. Error: "
         '{"errorMessage":"Provided API key could not be found."}'
     )
     assert (
@@ -121,8 +121,8 @@ async def _collect_error_chunks(stream) -> list[dict]:
 @pytest.mark.parametrize(
     "provider_message",
     [
-        "Rate limit exceeded for watsonx.ai. Please try again later.",
-        "Invalid API key for Anthropic. Check your credentials.",
+        "Rate limit exceeded for the configured provider. Please try again later.",
+        "Invalid API key for the configured provider. Check your credentials.",
         "Permission denied: model access not authorized for this project.",
         "Quota exceeded: you have reached your monthly token limit.",
     ],
@@ -165,7 +165,7 @@ async def test_langflow_stream_yields_provider_error_chunk(
 
 @pytest.mark.asyncio
 async def test_langflow_stream_persists_error_onto_existing_thread(monkeypatch, store_in_memory):
-    provider_message = "Invalid API key for Anthropic. Check your credentials."
+    provider_message = "Invalid API key for the configured provider. Check your credentials."
 
     async def raise_provider_error(*_args, **_kwargs) -> AsyncIterator[bytes]:
         raise Exception(provider_message)
@@ -207,7 +207,7 @@ async def test_langflow_stream_persists_error_onto_existing_thread(monkeypatch, 
 @pytest.mark.asyncio
 async def test_langflow_follow_up_after_error_reuses_store_id(monkeypatch, store_in_memory):
     """Retrying in the same chat must not create a second sidebar conversation."""
-    provider_message = "Rate limit exceeded for watsonx.ai."
+    provider_message = "Rate limit exceeded for the configured provider."
     stream_calls: list[dict] = []
 
     async def raise_provider_error(*_args, **kwargs) -> AsyncIterator[bytes]:
@@ -262,7 +262,7 @@ async def test_langflow_follow_up_after_error_reuses_store_id(monkeypatch, store
 @pytest.mark.asyncio
 async def test_langflow_follow_up_ignores_broken_previous_response_id(monkeypatch, store_in_memory):
     """Even if the client still sends a failed Langflow session id, do not chain it."""
-    provider_message = "Invalid API key for Anthropic. Check your credentials."
+    provider_message = "Invalid API key for the configured provider. Check your credentials."
     stream_calls: list[dict] = []
 
     async def raise_provider_error(*_args, **kwargs) -> AsyncIterator[bytes]:
@@ -347,12 +347,12 @@ async def test_langflow_stream_skips_persist_for_cold_previous_response_id(
 async def test_langflow_stream_treats_credential_dump_content_as_error(
     monkeypatch, store_in_memory
 ):
-    """WatsonX failures are often streamed as assistant text with no exception."""
+    """Provider credential dumps are often streamed as assistant text with no exception."""
     dump = (
-        "Failed to initialize IBM WatsonX embedding model: Attempt of authenticating "
+        "Failed to initialize the embedding model: Attempt of authenticating "
         "connection to service failed, please validate your credentials. Error: "
-        '{"errorCode":"BXNIM0415E","errorMessage":"Provided API key could not be found."} '
-        "IBM WatsonX requires additional configuration parameters "
+        '{"errorCode":"E401","errorMessage":"Provided API key could not be found."} '
+        "The provider requires additional configuration parameters "
         "(API endpoint URL and project ID). An error occurred while generating a response."
     )
 
@@ -386,7 +386,7 @@ async def test_langflow_stream_treats_credential_dump_content_as_error(
 
 @pytest.mark.asyncio
 async def test_langflow_stream_keeps_partial_text_with_provider_error(monkeypatch, store_in_memory):
-    provider_message = "Rate limit exceeded for watsonx.ai."
+    provider_message = "Rate limit exceeded for the configured provider."
 
     async def partial_then_fail(*_args, **_kwargs) -> AsyncIterator[bytes]:
         yield (

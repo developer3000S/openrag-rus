@@ -53,7 +53,7 @@ async def test_model_catalog_returns_providers():
     data = json.loads(response.body)
     keys = {p["key"] for p in data["providers"]}
     assert "openai" in keys
-    assert "anthropic" in keys
+    assert "ollama" in keys
     openai = next(p for p in data["providers"] if p["key"] == "openai")
     assert openai["models"]
     assert openai["embedding_models"]

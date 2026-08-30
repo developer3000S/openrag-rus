@@ -29,22 +29,11 @@ export interface KnowledgeSettings {
   vlm_max_tokens?: number;
   vlm_concurrency?: number;
   vlm_timeout?: number;
-  vlm_watsonx_api_version?: string;
 }
 
 export interface ProviderSettings {
   openai?: {
     has_api_key?: boolean;
-    configured?: boolean;
-  };
-  anthropic?: {
-    has_api_key?: boolean;
-    configured?: boolean;
-  };
-  watsonx?: {
-    has_api_key?: boolean;
-    endpoint?: string;
-    project_id?: string;
     configured?: boolean;
   };
   ollama?: {

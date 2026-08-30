@@ -17,10 +17,6 @@ export interface OnboardingVariables {
 
   // Provider-specific credentials
   openai_api_key?: string;
-  anthropic_api_key?: string;
-  watsonx_api_key?: string;
-  watsonx_endpoint?: string;
-  watsonx_project_id?: string;
   ollama_endpoint?: string;
   provider_credentials?: Record<string, Record<string, string>>;
 }

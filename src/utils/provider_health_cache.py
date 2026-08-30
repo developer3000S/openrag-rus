@@ -2,9 +2,9 @@
 
 The provider-health banner mounts on every page and polls the endpoint every
 5-30 seconds (per browser tab). With multiple tabs open, this fans out to many
-identical watsonx.ai validation calls and significantly raises the chance of
-hitting watsonx rate limits. A small in-process cache coalesces concurrent
-identical health checks so a single watsonx round-trip serves all of them.
+identical provider validation calls. A small in-process cache coalesces
+concurrent identical health checks so a single provider round-trip serves all
+of them.
 
 Only successful (200) responses on the default polled path are cached. The
 explicit ``?provider=`` query bypass and the 503 error path are not cached, so

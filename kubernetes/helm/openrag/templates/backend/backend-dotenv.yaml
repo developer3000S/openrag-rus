@@ -127,20 +127,8 @@ stringData:
     {{- if .Values.llmProviders.openai.apiKey }}
     OPENAI_API_KEY={{ .Values.llmProviders.openai.apiKey | quote }}
     {{- end }}
-    {{- if .Values.llmProviders.anthropic.apiKey }}
-    ANTHROPIC_API_KEY={{ .Values.llmProviders.anthropic.apiKey | quote }}
-    {{- end }}
     {{- if .Values.llmProviders.ollama.endpoint }}
     OLLAMA_ENDPOINT={{ .Values.llmProviders.ollama.endpoint | quote }}
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.apiKey }}
-    WATSONX_API_KEY={{ .Values.llmProviders.watsonx.apiKey | quote }}
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.endpoint }}
-    WATSONX_ENDPOINT={{ .Values.llmProviders.watsonx.endpoint | quote }}
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.projectId }}
-    WATSONX_PROJECT_ID={{ .Values.llmProviders.watsonx.projectId | quote }}
     {{- end }}
 
     # LLM / Embedding provider configuration

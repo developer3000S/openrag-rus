@@ -28,7 +28,7 @@ class UserPreferences(SQLModel, table=True):
     theme: Optional[str] = Field(default=None, max_length=32)
     language: Optional[str] = Field(default=None, max_length=16)
 
-    # JSON blob: {"openai":{"api_key":"..."}, "anthropic":{...}}
+    # JSON blob: {"openai":{"api_key":"..."}, "custom":{...}}
     provider_overrides: Optional[str] = Field(
         default=None,
         sa_column=Column(

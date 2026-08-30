@@ -638,12 +638,8 @@ class FlowsService:
 
     def _get_provider_name_display(self, provider: str) -> str:
         """Map internal provider key to Langflow display name."""
-        if provider == "watsonx":
-            return "IBM WatsonX"
         if provider == "ollama":
             return "Ollama"
-        if provider == "anthropic":
-            return "Anthropic"
         return "OpenAI"
 
     async def _update_flow_field(
@@ -1020,7 +1016,7 @@ class FlowsService:
         if not is_known_provider(provider):
             raise ValueError(f"Unknown LiteLLM provider: {provider}")
         flow_provider = (
-            provider if provider in {"watsonx", "ollama", "openai", "anthropic"} else "openai"
+            provider if provider in {"ollama", "openai"} else "openai"
         )
 
         try:
@@ -1146,19 +1142,17 @@ class FlowsService:
                 configured_providers = []
                 if config_obj.providers.openai.configured:
                     configured_providers.append("openai")
-                if config_obj.providers.watsonx.configured:
-                    configured_providers.append("watsonx")
                 if config_obj.providers.ollama.configured:
                     configured_providers.append("ollama")
 
                 # Ensure current provider is in the list for counting purposes if it's being configured
                 if (
-                    provider in ["openai", "watsonx", "ollama"]
+                    provider in ["openai", "ollama"]
                     and provider not in configured_providers
                 ):
                     configured_providers.append(provider)
 
-                all_possible = ["openai", "watsonx", "ollama"]
+                all_possible = ["openai", "ollama"]
                 configured_providers = [p for p in all_possible if p in configured_providers]
                 provider_count = len(configured_providers)
                 logger.info(
@@ -1470,18 +1464,12 @@ class FlowsService:
             OLLAMA_LLM_COMPONENT_DISPLAY_NAME,
             OPENAI_EMBEDDING_COMPONENT_DISPLAY_NAME,
             OPENAI_LLM_COMPONENT_DISPLAY_NAME,
-            WATSONX_EMBEDDING_COMPONENT_DISPLAY_NAME,
-            WATSONX_LLM_COMPONENT_DISPLAY_NAME,
         )
 
         if provider == "openai":
             return (OPENAI_EMBEDDING_COMPONENT_DISPLAY_NAME, OPENAI_LLM_COMPONENT_DISPLAY_NAME)
-        elif provider == "watsonx":
-            return (WATSONX_EMBEDDING_COMPONENT_DISPLAY_NAME, WATSONX_LLM_COMPONENT_DISPLAY_NAME)
         elif provider == "ollama":
             return (OLLAMA_EMBEDDING_COMPONENT_DISPLAY_NAME, OLLAMA_LLM_COMPONENT_DISPLAY_NAME)
-        elif provider == "anthropic":
-            return (None, "Anthropic")
         return (None, None)
 
     async def get_flows_updates_available(self, user_id: str | None = None) -> list[dict[str, Any]]:

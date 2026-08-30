@@ -198,13 +198,13 @@ export interface SettingsResponse {
 export interface SettingsUpdateOptions {
   /** LLM model name. */
   llm_model?: string;
-  /** LLM provider (openai, anthropic, watsonx, ollama). */
+  /** LLM provider (openai, ollama, omniroute). */
   llm_provider?: string;
   /** System prompt for the agent. */
   system_prompt?: string;
   /** Embedding model name. */
   embedding_model?: string;
-  /** Embedding provider (openai, watsonx, ollama). */
+  /** Embedding provider (openai, ollama). */
   embedding_provider?: string;
   /** Chunk size for document splitting. */
   chunk_size?: number;

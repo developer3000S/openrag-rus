@@ -153,7 +153,7 @@ def test_embedding_component_pins_deployment_to_the_configured_model():
     That default is the literal "text-embedding-ada-002" for every instance,
     whatever model is configured. The OpenSearch component keys its embedding
     lookup on `deployment` as well as `model`, so the default registers a
-    768-dim watsonx embedder under ada-002 and OpenSearch then rejects the
+    768-dim embedder under ada-002 and OpenSearch then rejects the
     search with "Query vector has invalid dimension: 768. Dimension should be:
     1536".
     """

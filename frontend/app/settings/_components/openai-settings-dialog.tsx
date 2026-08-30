@@ -51,10 +51,7 @@ const OpenAISettingsDialog = ({
   const isOpenAIConfigured = settings.providers?.openai?.configured === true;
 
   const canRemoveOpenAI =
-    isOpenAIConfigured &&
-    (settings.providers?.anthropic?.configured === true ||
-      settings.providers?.watsonx?.configured === true ||
-      settings.providers?.ollama?.configured === true);
+    isOpenAIConfigured && settings.providers?.ollama?.configured === true;
 
   const methods = useForm<OpenAISettingsFormData>({
     mode: "onSubmit",

@@ -84,8 +84,6 @@ const PREFERRED_LANGUAGE_MODELS = [
   "gpt-4o",
   "gpt-4.1-mini",
   "gpt-4.1",
-  "claude-sonnet-4-6",
-  "claude-sonnet-4-5",
 ];
 const PREFERRED_EMBEDDING_MODELS = [
   "text-embedding-3-small",
@@ -260,13 +258,11 @@ export interface SavedProviderSnapshot {
 
 export interface SavedProvidersSnapshot {
   openai?: SavedProviderSnapshot;
-  anthropic?: SavedProviderSnapshot;
-  watsonx?: SavedProviderSnapshot;
   ollama?: SavedProviderSnapshot;
   custom?: Record<string, SavedProviderSnapshot>;
 }
 
-/** Secrets already stored for this vendor — including the four legacy slots. */
+/** Secrets already stored for this vendor — including the legacy slots. */
 export function savedSecretFieldsForProvider(
   providers: SavedProvidersSnapshot | undefined,
   provider: string,
@@ -276,12 +272,6 @@ export function savedSecretFieldsForProvider(
   }
   const fields = new Set(providers.custom?.[provider]?.secret_fields ?? []);
   if (provider === "openai" && providers.openai?.has_api_key) {
-    fields.add("api_key");
-  }
-  if (provider === "anthropic" && providers.anthropic?.has_api_key) {
-    fields.add("api_key");
-  }
-  if (provider === "watsonx" && providers.watsonx?.has_api_key) {
     fields.add("api_key");
   }
   return [...fields];
@@ -294,14 +284,6 @@ export function savedCredentialValuesForProvider(
   const values = {
     ...(providers?.custom?.[provider]?.credential_values ?? {}),
   };
-  if (provider === "watsonx") {
-    if (providers?.watsonx?.endpoint) {
-      values.api_base ??= providers.watsonx.endpoint;
-    }
-    if (providers?.watsonx?.project_id) {
-      values.project_id ??= providers.watsonx.project_id;
-    }
-  }
   if (provider === "ollama" && providers?.ollama?.endpoint) {
     values.api_base ??= providers.ollama.endpoint;
   }
@@ -328,8 +310,6 @@ export function providerCredentialsSatisfied(
         Object.keys(values).length > 0 ||
         providers.custom?.[provider]?.configured ||
         (provider === "openai" && providers.openai?.configured) ||
-        (provider === "anthropic" && providers.anthropic?.configured) ||
-        (provider === "watsonx" && providers.watsonx?.configured) ||
         (provider === "ollama" && providers.ollama?.configured),
     );
   }

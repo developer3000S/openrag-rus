@@ -300,17 +300,6 @@ type EmbeddingSpec struct {
 	Model string `json:"model,omitempty"`
 }
 
-// WatsonXSpec holds IBM WatsonX connection details.
-type WatsonXSpec struct {
-	// +optional
-	Endpoint string `json:"endpoint,omitempty"`
-	// +optional
-	ProjectID string `json:"projectId,omitempty"`
-	// APIKeySecret references the Secret key for WATSONX_API_KEY.
-	// +optional
-	APIKeySecret *corev1.SecretKeySelector `json:"apiKeySecret,omitempty"`
-}
-
 // PersistenceSpec describes a PVC to be created or reused for a component.
 type PersistenceSpec struct {
 	// +optional
@@ -742,10 +731,6 @@ type OpenRAGSpec struct {
 	// Embedding configures the embedding provider (EMBEDDING_PROVIDER, EMBEDDING_MODEL).
 	// +optional
 	Embedding *EmbeddingSpec `json:"embedding,omitempty"`
-
-	// WatsonX configures IBM WatsonX credentials.
-	// +optional
-	WatsonX *WatsonXSpec `json:"watsonx,omitempty"`
 
 	// OpenSearch configures the external OpenSearch connection.
 	// +optional

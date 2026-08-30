@@ -49,19 +49,12 @@ spec:
     # flowsInitImage: python:3-alpine
 
   # llm:
-  #   provider: watsonx
-  #   model: ibm/granite-3-2-8b-instruct
+  #   provider: openai
+  #   model: gpt-4o-mini
 
   # embedding:
-  #   provider: watsonx
-  #   model: ibm/granite-embedding-278m-multilingual
-
-  # watsonx:
-  #   endpoint: https://us-south.ml.cloud.ibm.com
-  #   projectId: ""
-  #   apiKeySecret:
-  #     name: my-watsonx-secret
-  #     key: WATSONX_API_KEY
+  #   provider: openai
+  #   model: text-embedding-3-small
 
   # External OpenSearch — required unless credentials are in backend envSecret
   # opensearch:

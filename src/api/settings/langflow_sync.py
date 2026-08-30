@@ -161,7 +161,7 @@ async def ensure_required_langflow_global_variables(config=None):
             target_val = _string_value(required_values.get(name)) if is_generic else curr_val
 
             # Langflow rejects an empty value with 400 "Variable value cannot be
-            # empty". Optional providers (Ollama, watsonx) resolve to "" when
+            # empty". Optional providers (Ollama) resolve to "" when
             # unconfigured, so keep whatever Langflow already holds instead of
             # pushing a value it will refuse. This matters most in the type
             # migration below: the DELETE has already landed by then, so a
@@ -239,9 +239,9 @@ async def ensure_required_langflow_global_variables(config=None):
                 target_val = _string_value(required_values.get(name, ""))
                 if not target_val:
                     # Langflow rejects an empty value with 400. Variables sourced
-                    # from an unconfigured optional provider (OLLAMA_BASE_URL,
-                    # WATSONX_PROJECT_ID, WATSONX_URL) have nothing to set yet;
-                    # they are created once that provider is configured.
+                    # from an unconfigured optional provider (OLLAMA_BASE_URL)
+                    # have nothing to set yet; they are created once that
+                    # provider is configured.
                     logger.debug(
                         "Skipping Langflow global variable with no configured value",
                         variable_name=name,
@@ -449,7 +449,6 @@ async def _update_langflow_model_values(
             # reapply_all_settings previously only reapplied embedding providers,
             # leaving LLM model values unset whenever flows were reset.
             llm_providers = _configured_provider_names(config, _LLM_PROVIDER_NAMES)
-
             current_llm_provider = config.agent.llm_provider.lower()
             for provider in llm_providers:
                 # Use configured model for current provider, or None (first available) for others
@@ -462,7 +461,9 @@ async def _update_langflow_model_values(
                 logger.info(f"Successfully updated Langflow flows for LLM provider {provider}")
 
             # 2. Update ALL configured embedding providers
-            embedding_providers = _configured_provider_names(config, _EMBEDDING_PROVIDER_NAMES)
+            embedding_providers = _configured_provider_names(
+                config, _EMBEDDING_PROVIDER_NAMES, embedding=True
+            )
 
             current_embedding_provider = config.knowledge.embedding_provider.lower()
             for provider in embedding_providers:

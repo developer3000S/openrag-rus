@@ -14,12 +14,12 @@ from utils.langflow_headers import (
 def test_build_model_provider_headers_forces_openai_client():
     config = SimpleNamespace(
         knowledge=SimpleNamespace(
-            embedding_model="text-embedding-3-small", embedding_provider="watsonx"
+            embedding_model="text-embedding-3-small", embedding_provider="ollama"
         ),
-        agent=SimpleNamespace(llm_model="claude-sonnet-4-5", llm_provider="anthropic"),
+        agent=SimpleNamespace(llm_model="gpt-4o-mini", llm_provider="openai"),
     )
     headers = build_model_provider_headers(config)
-    assert headers["X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL"] == "claude-sonnet-4-5"
+    assert headers["X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL"] == "gpt-4o-mini"
     assert headers["X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL_PROVIDER"] == "OpenAI"
     assert headers["X-LANGFLOW-GLOBAL-VAR-SELECTED_EMBEDDING_MODEL"] == "text-embedding-3-small"
     assert headers["X-LANGFLOW-GLOBAL-VAR-SELECTED_EMBEDDING_MODEL_PROVIDER"] == "OpenAI"
@@ -41,8 +41,6 @@ async def test_add_provider_credentials_injects_hop_token_not_jwt_or_provider_ke
     config = SimpleNamespace(
         providers=SimpleNamespace(
             openai=SimpleNamespace(api_key="sk-real-openai"),
-            anthropic=SimpleNamespace(api_key="sk-ant-real"),
-            watsonx=SimpleNamespace(api_key="wx-real", project_id="p", endpoint="https://wx"),
             ollama=SimpleNamespace(endpoint="http://localhost:11434"),
         )
     )
@@ -63,10 +61,8 @@ async def test_add_provider_credentials_injects_hop_token_not_jwt_or_provider_ke
     # values, so a secret embedded in a larger value ("Bearer sk-real-openai")
     # would slip past the very leak this test exists to catch.
     serialized = "\n".join(f"{name}: {value}" for name, value in headers.items())
-    for secret in ("sk-real-openai", "sk-ant-real", "wx-real"):
+    for secret in ("sk-real-openai",):
         assert secret not in serialized
-    assert "X-LANGFLOW-GLOBAL-VAR-ANTHROPIC_API_KEY" not in headers
-    assert "X-LANGFLOW-GLOBAL-VAR-WATSONX_APIKEY" not in headers
 
 
 @pytest.mark.asyncio

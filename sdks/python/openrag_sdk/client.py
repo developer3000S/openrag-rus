@@ -30,7 +30,7 @@ class ModelsClient:
         List available language and embedding models for a provider.
 
         Args:
-            provider: One of openai, anthropic, ollama, watsonx.
+            provider: One of openai, ollama, omniroute.
 
         Returns:
             ModelsResponse with language_models and embedding_models lists.

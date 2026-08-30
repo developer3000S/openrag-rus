@@ -51,9 +51,7 @@ const OllamaSettingsDialog = ({
   const isOllamaConfigured = settings.providers?.ollama?.configured === true;
 
   const otherProviderConfigured =
-    settings.providers?.openai?.configured === true ||
-    settings.providers?.anthropic?.configured === true ||
-    settings.providers?.watsonx?.configured === true;
+    settings.providers?.openai?.configured === true;
 
   const canRemoveOllama = isOllamaConfigured && otherProviderConfigured;
 

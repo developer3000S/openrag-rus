@@ -56,36 +56,10 @@ stringData:
     OPENAI_API_KEY="None"
     OPENRAG_LLM_TOKEN="None"
     OPENRAG_LLM_BASE_URL="None"
-    {{- if .Values.llmProviders.anthropic.apiKey }}
-    ANTHROPIC_API_KEY={{ .Values.llmProviders.anthropic.apiKey | quote }}
-    {{- else }}
-    ANTHROPIC_API_KEY="None"
-    {{- end }}
     {{- if .Values.llmProviders.ollama.endpoint }}
     OLLAMA_BASE_URL={{ .Values.llmProviders.ollama.endpoint | quote }}
     {{- else }}
     OLLAMA_BASE_URL="None"
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.apiKey }}
-    WATSONX_API_KEY={{ .Values.llmProviders.watsonx.apiKey | quote }}
-    {{- else }}
-    WATSONX_API_KEY="None"
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.endpoint }}
-    WATSONX_ENDPOINT={{ .Values.llmProviders.watsonx.endpoint | quote }}
-    {{- else }}
-    WATSONX_ENDPOINT="None"
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.projectId }}
-    WATSONX_PROJECT_ID={{ .Values.llmProviders.watsonx.projectId | quote }}
-    {{- else }}
-    WATSONX_PROJECT_ID="None"
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.maxRetries }}
-    WATSONX_MAX_RETRIES={{ .Values.llmProviders.watsonx.maxRetries | quote }}
-    {{- end }}
-    {{- if .Values.llmProviders.watsonx.delayTime }}
-    WATSONX_DELAY_TIME={{ .Values.llmProviders.watsonx.delayTime | quote }}
     {{- end }}
 
     # LLM / Embedding provider configuration

@@ -201,7 +201,7 @@ class TestInferFailureMetadata:
             phase=IngestionPhase.LANGFLOW,
             docling_status=DoclingPhaseStatus.SUCCESS,
             error=(
-                "Model 'ibm/granite-4-h-small' was not found. "
+                "Model 'gpt-4o-mini' was not found. "
                 "This model may be unsupported, deprecated, or removed."
             ),
         )
@@ -209,7 +209,7 @@ class TestInferFailureMetadata:
         assert meta is not None
         assert meta["component"] == "langflow"
         assert meta["actionable_by"] == "USER_ACTIONABLE"
-        assert "granite-4-h-small" in meta["user_facing_message"]
+        assert "gpt-4o-mini" in meta["user_facing_message"]
         assert "unexpectedly" not in meta["user_facing_message"].lower()
 
     def test_langflow_revoked_api_key_failure(self, task_service):
@@ -217,7 +217,7 @@ class TestInferFailureMetadata:
             phase=IngestionPhase.LANGFLOW,
             docling_status=DoclingPhaseStatus.SUCCESS,
             error=(
-                'Failed to authenticate with IBM Watson: {"errorCode":"BXNIM0415E",'
+                'Failed to authenticate: {"errorCode":"E401",'
                 '"errorMessage":"Provided API key could not be found."}'
             ),
         )
@@ -230,15 +230,15 @@ class TestInferFailureMetadata:
         assert "{" not in meta["user_facing_message"]
 
     def test_langflow_disabled_api_key_failure(self, task_service):
-        """Disabled (not deleted) IBM keys must not fall through to generic Langflow copy."""
+        """Disabled (not deleted) keys must not fall through to generic Langflow copy."""
         ft = _make_file_task(
             phase=IngestionPhase.LANGFLOW,
             docling_status=DoclingPhaseStatus.SUCCESS,
             error=(
-                "Error building Component Embedding Model: Failed to initialize IBM "
-                "WatsonX embedding model: Attempt of authenticating connection to "
+                "Error building Component Embedding Model: Failed to initialize the "
+                "embedding model: Attempt of authenticating connection to "
                 "service failed, please validate your credentials. Error: "
-                '{"errorCode":"BXNIM0420E","errorMessage":"Provided API key is disabled."}'
+                '{"errorCode":"E403","errorMessage":"Provided API key is disabled."}'
             ),
         )
         meta = task_service._infer_failure_metadata(ft)

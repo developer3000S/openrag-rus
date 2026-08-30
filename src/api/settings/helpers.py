@@ -20,19 +20,22 @@ from utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-# Provider names in priority order. LLM supports anthropic; embeddings do not.
-_LLM_PROVIDER_NAMES = ("openai", "anthropic", "watsonx", "ollama")
-_EMBEDDING_PROVIDER_NAMES = ("openai", "watsonx", "ollama")
+_LLM_PROVIDER_NAMES = ("openai", "ollama")
+_EMBEDDING_PROVIDER_NAMES = ("openai", "ollama")
 
 
-def _configured_provider_names(config, provider_names) -> list:
-    """Return the provider names from `provider_names` marked configured in the OpenRAG config."""
+def _configured_provider_names(config, provider_names, *, embedding: bool = False) -> list:
+    """Return the provider names from `provider_names` marked configured in the OpenRAG config.
+
+    `embedding` selects the catalogue capability a configured custom provider
+    must expose to qualify: embedding models for the ingest pass, chat models
+    for the LLM pass.
+    """
     providers = config.providers
     configured = [name for name in provider_names if getattr(providers, name).configured]
     from services.model_catalog import catalog
 
     entries = {entry["key"]: entry for entry in catalog()["providers"]}
-    embedding = tuple(provider_names) == _EMBEDDING_PROVIDER_NAMES
     for provider, value in providers.custom.items():
         entry = entries.get(provider)
         supports_kind = bool(
@@ -73,19 +76,14 @@ def _first_configured_embedding_provider(config, excluding: str) -> str:
 def _default_llm_model(provider: str) -> str:
     """Return the static preferred LLM model for a provider.
 
-    OpenAI/Anthropic have stable preferred defaults. Ollama/watsonx model IDs are
-    dynamic from the live provider list — return empty so the frontend picks from
-    the live list (default flag or first available).
+    OpenAI has a stable preferred default. Ollama model IDs are dynamic from
+    the live provider list — return empty so the frontend picks from the live
+    list (default flag or first available).
     """
-    from config.model_constants import (
-        ANTHROPIC_DEFAULT_LANGUAGE_MODEL,
-        OPENAI_DEFAULT_LANGUAGE_MODEL,
-    )
+    from config.model_constants import OPENAI_DEFAULT_LANGUAGE_MODEL
 
     return {
         "openai": OPENAI_DEFAULT_LANGUAGE_MODEL,
-        "anthropic": ANTHROPIC_DEFAULT_LANGUAGE_MODEL,
-        "watsonx": "",
         "ollama": "",
         "omniroute": os.getenv("OMNIROUTE_MODEL", "free-stack").strip() or "free-stack",
     }.get(provider, "")
@@ -96,9 +94,9 @@ def _default_embedding_model(provider: str) -> str:
     reshuffle, or "" if none can be assumed safe.
 
     No provider gets a hardcoded model name here. A provider name like
-    "openai" or "watsonx" doesn't reliably tell you which models are
-    actually deployed — it's frequently an internal OpenAI/watsonx-
-    compatible gateway with a curated, deployment-specific model subset.
+    "openai" doesn't reliably tell you which models are
+    actually deployed — it's frequently an internal OpenAI-compatible gateway
+    with a curated, deployment-specific model subset.
     A hardcoded guess can silently select a model the gateway doesn't
     serve, breaking every ingestion with no clear signal why (see
     incident: hardcoded "text-embedding-3-small" was selected in an
@@ -134,9 +132,6 @@ async def _affected_embedding_models(
     from services.models_service import ModelsService
 
     provider_lower = provider.lower()
-    if provider_lower == "anthropic":
-        # Anthropic doesn't serve embedding models — nothing to warn about.
-        return []
 
     try:
         # Refresh so the registry reflects currently-configured providers
@@ -164,11 +159,6 @@ async def _affected_embedding_models(
             if not model:
                 continue
             mapped = registry.get(model)
-            # Narrow fallback: the watsonx registry bootstrap requires the
-            # provider still be configured, so models from an about-to-be-
-            # removed watsonx can still be attributed via the "ibm/" prefix.
-            if mapped is None and provider_lower == "watsonx" and model.startswith("ibm/"):
-                mapped = "watsonx"
             if mapped == provider_lower:
                 affected.append({"model": model, "doc_count": bucket.get("doc_count", 0)})
         return affected

@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 
 TEXT_GENERATION_MODES = frozenset({"chat", "completion", "responses"})
 EMBEDDING_MODE = "embedding"
-SUPPORTED_PROVIDER_KEYS = frozenset({"openai", "anthropic", "watsonx", "ollama", "omniroute"})
+SUPPORTED_PROVIDER_KEYS = frozenset({"openai", "ollama", "omniroute"})
 
 # Providers LiteLLM has no curated cost table for. The picker still needs a
 # real, routable model to offer, so a single curated default is served instead
@@ -324,7 +324,7 @@ def catalog_owner(model: str) -> str | None:
     """The single provider that serves `model`, if exactly one does.
 
     Used to disambiguate vendor-qualified names such as `openai/gpt-oss-120b`,
-    which watsonx serves and whose own prefix names a different provider.
+    which another provider may serve and whose own prefix names a different one.
     """
     name = (model or "").strip()
     if not name:
@@ -355,14 +355,14 @@ def public_model_id(provider: str, model: str) -> str:
 
     `_catalog()` strips the provider prefix so the picker can show bare names,
     but an unprefixed id sent back to `/v1/chat/completions` is resolved against
-    the *default* provider — an Anthropic model would then be called with the
+    the *default* provider — a non-OpenAI model would then be called with the
     OpenAI credentials. Re-attach the provider for every non-OpenAI provider so
     the id round-trips through `resolve_call()`. OpenAI keeps bare names because
     that is what OpenAI-compatible clients expect.
 
-    The tag uses `provider:model`, not `provider/model`: watsonx serves
-    `openai/gpt-oss-120b`, so a slash-joined id is indistinguishable from that
-    model's own name.
+    The tag uses `provider:model`, not `provider/model`: a vendor-qualified
+    name like `openai/gpt-oss-120b` would make a slash-joined id
+    indistinguishable from that model's own name.
     """
     from services.llm_gateway import PROVIDER_SEPARATOR
 

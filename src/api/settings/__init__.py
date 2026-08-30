@@ -27,7 +27,6 @@ from api.settings.endpoints import (
 from api.settings.langflow_sync import reapply_all_settings
 from api.settings.models import (
     AgentConfig,
-    AnthropicProviderConfig,
     AssistantMessage,
     DoclingPresetBody,
     DoclingPresetResponse,
@@ -47,7 +46,6 @@ from api.settings.models import (
     SettingsResponse,
     SettingsUpdateBody,
     SettingsUpdateResponse,
-    WatsonXProviderConfig,
 )
 
 __all__ = [
@@ -70,8 +68,6 @@ __all__ = [
     "DoclingPresetBody",
     "OnboardingStateConfig",
     "OpenAIProviderConfig",
-    "AnthropicProviderConfig",
-    "WatsonXProviderConfig",
     "OllamaProviderConfig",
     "ProvidersConfig",
     "KnowledgeConfig",

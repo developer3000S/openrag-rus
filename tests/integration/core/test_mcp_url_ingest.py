@@ -134,8 +134,6 @@ async def test_loaded_agent_flow_routes_request_globals_into_mcp_headers():
         "OPENRAG_LLM_TOKEN",
         "OPENSEARCH_URL",
         "SELECTED_EMBEDDING_MODEL",
-        "WATSONX_APIKEY",
-        "WATSONX_PROJECT_ID",
         "OPENSEARCH_INDEX_NAME",
         "OPENRAG_INGEST_URL",
         "OPENRAG_INGEST_TOKEN",

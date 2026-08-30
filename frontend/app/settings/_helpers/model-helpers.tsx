@@ -1,40 +1,20 @@
-import AnthropicLogo from "@/components/icons/anthropic-logo";
-import IBMLogo from "@/components/icons/ibm-logo";
 import OllamaLogo from "@/components/icons/ollama-logo";
 import OpenAILogo from "@/components/icons/openai-logo";
 
-export type ModelProvider =
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "watsonx"
-  | "omniroute"
-  | "local";
+export type ModelProvider = "openai" | "ollama" | "omniroute" | "local";
 
 // Full ordered list of providers for settings / cards
-export const ALL_PROVIDERS: ModelProvider[] = [
-  "openai",
-  "ollama",
-  "watsonx",
-  "anthropic",
-  "omniroute",
-];
+export const ALL_PROVIDERS: ModelProvider[] = ["openai", "ollama", "omniroute"];
 
 // Preferred auto-select order for the LLM onboarding step
 export const LLM_PROVIDER_ORDER: ModelProvider[] = [
-  "anthropic",
   "openai",
-  "watsonx",
   "ollama",
   "omniroute",
 ];
 
 // Preferred auto-select order for the embedding onboarding step
-export const EMBEDDING_PROVIDER_ORDER: ModelProvider[] = [
-  "openai",
-  "watsonx",
-  "ollama",
-];
+export const EMBEDDING_PROVIDER_ORDER: ModelProvider[] = ["openai", "ollama"];
 
 // Providers unavailable in cloud (IBM) deployments
 export const CLOUD_EXCLUDED_PROVIDERS: ModelProvider[] = ["ollama"];
@@ -49,12 +29,8 @@ export function getModelLogo(modelValue: string, provider?: string) {
   // First check by provider
   if (provider === "openai") {
     return <OpenAILogo className="w-4 h-4" />;
-  } else if (provider === "anthropic") {
-    return <AnthropicLogo className="w-4 h-4" />;
   } else if (provider === "ollama") {
     return <OllamaLogo className="w-4 h-4" />;
-  } else if (provider === "watsonx") {
-    return <IBMLogo className="w-4 h-4" />;
   } else if (provider === "omniroute") {
     return (
       <svg
@@ -120,12 +96,6 @@ export function getModelLogo(modelValue: string, provider?: string) {
     return <OpenAILogo className="w-4 h-4" />;
   } else if (modelValue.includes("llama") || modelValue.includes("ollama")) {
     return <OllamaLogo className="w-4 h-4" />;
-  } else if (
-    modelValue.includes("granite") ||
-    modelValue.includes("slate") ||
-    modelValue.includes("ibm")
-  ) {
-    return <IBMLogo className="w-4 h-4" />;
   }
 
   return <OpenAILogo className="w-4 h-4" />; // Default to OpenAI logo
@@ -173,23 +143,6 @@ export function getFallbackModels(provider: ModelProvider) {
           { value: "text-embedding-ada-002", label: "text-embedding-ada-002" },
         ],
       };
-    case "anthropic":
-      return {
-        language: [
-          // Claude 5 family (current)
-          { value: "claude-fable-5", label: "Claude Fable 5" },
-          { value: "claude-opus-5", label: "Claude Opus 5" },
-          { value: "claude-sonnet-5", label: "Claude Sonnet 5" },
-          // Claude 4.x (still functional)
-          { value: "claude-opus-4-8", label: "Claude Opus 4.8" },
-          { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
-          { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-          { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-          { value: "claude-opus-4-5-20251101", label: "Claude Opus 4.5" },
-          { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-          { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-        ],
-      };
     case "ollama":
       return {
         // Tool-calling capable recommendations only (agent requires tools)
@@ -204,9 +157,6 @@ export function getFallbackModels(provider: ModelProvider) {
           { value: "mxbai-embed-large", label: "MxBai Embed Large" },
         ],
       };
-    case "watsonx":
-      // No stable static IDs — live list is required for watsonx.
-      return { language: [], embedding: [] };
     case "omniroute":
       return {
         language: [{ value: "free-stack", label: "free-stack" }],

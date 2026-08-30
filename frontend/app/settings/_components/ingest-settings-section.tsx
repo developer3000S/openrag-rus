@@ -53,8 +53,6 @@ import {
 import { getModelLogo } from "../_helpers/model-helpers";
 import { LangflowIcon } from "./langflow-icon";
 
-const DEFAULT_WATSONX_API_VERSION = "2023-05-29";
-
 const RESPONSE_FORMATS = [
   { value: "markdown", label: "Markdown (recommended)" },
   { value: "doctags", label: "DocTags" },
@@ -88,9 +86,6 @@ export function IngestSettingsSection() {
   const [vlmMaxTokens, setVlmMaxTokens] = useState<number>(5000);
   const [vlmConcurrency, setVlmConcurrency] = useState<number>(4);
   const [vlmTimeout, setVlmTimeout] = useState<number>(120);
-  const [vlmWatsonxApiVersion, setVlmWatsonxApiVersion] = useState<string>(
-    DEFAULT_WATSONX_API_VERSION,
-  );
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { data: settings = {} } = useGetSettingsQuery({
@@ -113,9 +108,7 @@ export function IngestSettingsSection() {
   const configuredProviders = useMemo(
     () => ({
       openai: settings.providers?.openai?.configured === true,
-      anthropic: settings.providers?.anthropic?.configured === true,
       ollama: settings.providers?.ollama?.configured === true,
-      watsonx: settings.providers?.watsonx?.configured === true,
       ...Object.fromEntries(
         Object.entries(settings.providers?.custom ?? {}).map(
           ([provider, value]) => [provider, value.configured === true],
@@ -250,8 +243,6 @@ export function IngestSettingsSection() {
     if (k.vlm_max_tokens !== undefined) setVlmMaxTokens(k.vlm_max_tokens);
     if (k.vlm_concurrency !== undefined) setVlmConcurrency(k.vlm_concurrency);
     if (k.vlm_timeout !== undefined) setVlmTimeout(k.vlm_timeout);
-    if (k.vlm_watsonx_api_version !== undefined)
-      setVlmWatsonxApiVersion(k.vlm_watsonx_api_version);
   }, [settings.knowledge]);
 
   const [vlmOpen, setVlmOpen] = useState(false);
@@ -301,9 +292,7 @@ export function IngestSettingsSection() {
       vlmResponseFormat !== (k?.vlm_response_format ?? vlmResponseFormat) ||
       vlmMaxTokens !== (k?.vlm_max_tokens ?? vlmMaxTokens) ||
       vlmConcurrency !== (k?.vlm_concurrency ?? vlmConcurrency) ||
-      vlmTimeout !== (k?.vlm_timeout ?? vlmTimeout) ||
-      vlmWatsonxApiVersion !==
-        (k?.vlm_watsonx_api_version ?? vlmWatsonxApiVersion));
+      vlmTimeout !== (k?.vlm_timeout ?? vlmTimeout));
 
   const knowledgeIngestDirty =
     chunkSize !== (k?.chunk_size ?? chunkSize) ||
@@ -356,7 +345,6 @@ export function IngestSettingsSection() {
           vlm_max_tokens: vlmMaxTokens,
           vlm_concurrency: vlmConcurrency,
           vlm_timeout: vlmTimeout,
-          vlm_watsonx_api_version: vlmWatsonxApiVersion,
         }
       : {};
 
@@ -811,7 +799,7 @@ export function IngestSettingsSection() {
                               ? "Loading models..."
                               : catalogError
                                 ? "Could not load the model catalogue. Retry later."
-                                : "No models detected. Configure OpenAI, Anthropic, Ollama, or IBM watsonx.ai first."
+                                : "No models detected. Configure OpenAI, Ollama, or an OpenRAG provider first."
                           }
                           value={vlmModel}
                           selectedProvider={vlmProvider}
@@ -827,28 +815,6 @@ export function IngestSettingsSection() {
                         </p>
                       )}
                     </div>
-
-                    {vlmProvider === "watsonx" && (
-                      <div className="space-y-2">
-                        <LabelWrapper
-                          id="vlm-watsonx-api-version"
-                          label="watsonx API version"
-                          helperText="API version date sent to watsonx.ai"
-                        >
-                          <Input
-                            id="vlm-watsonx-api-version"
-                            type="text"
-                            placeholder={DEFAULT_WATSONX_API_VERSION}
-                            value={vlmWatsonxApiVersion}
-                            onChange={(e) => {
-                              setUserEdited(true);
-                              setVlmWatsonxApiVersion(e.target.value);
-                            }}
-                            disabled={!pictureDescriptions}
-                          />
-                        </LabelWrapper>
-                      </div>
-                    )}
 
                     <div className="space-y-2">
                       <LabelWrapper

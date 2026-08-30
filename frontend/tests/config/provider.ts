@@ -37,34 +37,10 @@ export const OLLAMA_CONFIG: ProviderConfig = {
   },
 };
 
-// IBM watsonx.ai Configuration (Optional)
-export const WATSONX_CONFIG: ProviderConfig = {
-  provider: "IBM watsonx.ai",
-  language: "ibm/granite-4-h-small",
-  embedding: "ibm/slate-125m-english-rtrvr-v2",
-  testCase: {
-    url: "https://kubernetes.io/docs/concepts/overview/",
-    docName: "Overview | Kubernetes",
-  },
-};
-
-// Anthropic Configuration (Optional)
-export const ANTHROPIC_CONFIG: ProviderConfig = {
-  provider: "Anthropic",
-  language: "claude-3-5-sonnet-20241022",
-  embedding: "text-embedding-3-large", // Anthropic doesn't have embeddings, use OpenAI
-  testCase: {
-    url: "https://nodejs.org/docs/latest/api/",
-    docName: "Index | Node.js",
-  },
-};
-
 // All provider configurations
 export const PROVIDER_CONFIGS: ProviderConfig[] = [
   OPENAI_CONFIG,
   OLLAMA_CONFIG,
-  WATSONX_CONFIG,
-  ANTHROPIC_CONFIG,
 ];
 
 /**
@@ -87,13 +63,5 @@ export const MODEL_TRANSITIONS: ModelTransitionConfig[] = [
     provider: "Ollama",
     languageSequence: ["qwen3:latest"],
     embeddingSequence: ["nomic-embed-text:latest", "qwen3-embedding:latest"],
-  },
-  {
-    provider: "IBM watsonx.ai",
-    languageSequence: ["ibm/granite-4-h-small", "ibm/granite-3-3-8b-instruct"],
-    embeddingSequence: [
-      "ibm/slate-125m-english-rtrvr-v2",
-      "ibm/granite-embedding-278m-multilingual",
-    ],
   },
 ];

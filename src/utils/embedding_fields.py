@@ -60,7 +60,7 @@ def normalize_model_name(model_name: str) -> str:
         - "ibm/slate-125m-english-rtrvr" -> "ibm_slate_125m_english_rtrvr"
 
     Args:
-        model_name: The embedding model name (e.g., from OpenAI, Ollama, Watsonx)
+        model_name: The embedding model name (e.g., from OpenAI, Ollama, OmniRoute)
 
     Returns:
         Normalized string safe for use as OpenSearch field name suffix

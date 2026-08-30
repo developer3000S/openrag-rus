@@ -156,8 +156,6 @@ class DoclingService:
         preview_mode: bool = False,
     ) -> dict[str, Any]:
         """Build the options payload for docling from OpenRAG configs, incorporating VLM settings if enabled."""
-        from services.watsonx_iam import WatsonxIamError, get_iam_token
-
         config = get_openrag_config()
         knowledge_config = config.knowledge
 
@@ -196,56 +194,6 @@ class DoclingService:
             if provider == "local":
                 options["picture_description_local"] = {
                     "repo_id": vlm_model,
-                    "prompt": prompt,
-                }
-            elif provider == "watsonx":
-                watsonx = config.providers.watsonx
-                if not (watsonx.api_key and watsonx.endpoint and watsonx.project_id):
-                    raise DoclingServeError(
-                        "Docling VLM is enabled but the watsonx provider is not fully "
-                        "configured (api key, endpoint, and project id are required)"
-                    )
-                try:
-                    token = await get_iam_token(watsonx.api_key)
-                except httpx.RequestError as e:
-                    raise DoclingTransientError(
-                        f"watsonx IAM token exchange network error: {str(e)}"
-                    ) from e
-                except WatsonxIamError as e:
-                    raise DoclingServeError(str(e)) from e
-
-                url = (
-                    f"{watsonx.endpoint.rstrip('/')}/ml/v1/text/chat"
-                    f"?version={knowledge_config.vlm_watsonx_api_version}"
-                )
-                options["picture_description_api"] = {
-                    "url": url,
-                    "headers": {"Authorization": f"Bearer {token}"},
-                    "params": {
-                        "model_id": vlm_model,
-                        "project_id": watsonx.project_id,
-                        "max_tokens": knowledge_config.vlm_max_tokens,
-                    },
-                    "prompt": prompt,
-                }
-            elif provider == "anthropic":
-                anthropic = config.providers.anthropic
-                if not anthropic.api_key:
-                    raise DoclingServeError(
-                        "Docling VLM is enabled but the Anthropic provider is not configured"
-                    )
-                url = "https://api.anthropic.com/v1/messages"
-                options["picture_description_api"] = {
-                    "url": url,
-                    "headers": {
-                        "x-api-key": anthropic.api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    "params": {
-                        "model": vlm_model,
-                        "max_tokens": knowledge_config.vlm_max_tokens,
-                    },
                     "prompt": prompt,
                 }
             elif provider == "ollama":

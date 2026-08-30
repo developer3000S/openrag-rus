@@ -23,27 +23,20 @@ class SettingsUpdateBody(BaseModel):
     picture_descriptions: bool | None = None
     disable_ingest_with_langflow: bool | None = None
     vlm_enabled: bool | None = None
-    vlm_provider: str | None = Field(None, pattern="^(openai|watsonx|anthropic|local|ollama)$")
+    vlm_provider: str | None = Field(None, pattern="^(openai|local|ollama)$")
     vlm_model: str | None = Field(None, min_length=1)
     vlm_prompt: str | None = None
     vlm_response_format: str | None = Field(None, pattern="^(markdown|doctags|html)$")
     vlm_max_tokens: int | None = Field(None, gt=0)
     vlm_concurrency: int | None = Field(None, gt=0)
     vlm_timeout: int | None = Field(None, gt=0)
-    vlm_watsonx_api_version: str | None = Field(None, min_length=1)
     embedding_model: str | None = Field(None, min_length=1)
     embedding_provider: str | None = Field(None, min_length=1)
     index_name: str | None = Field(None, min_length=1)
     openai_api_key: str | None = Field(None, min_length=1)
-    anthropic_api_key: str | None = Field(None, min_length=1)
-    watsonx_api_key: str | None = Field(None, min_length=1)
-    watsonx_endpoint: str | None = Field(None, min_length=1)
-    watsonx_project_id: str | None = Field(None, min_length=1)
     ollama_endpoint: str | None = Field(None, min_length=1)
     remove_ollama_config: bool | None = None
     remove_openai_config: bool | None = None
-    remove_anthropic_config: bool | None = None
-    remove_watsonx_config: bool | None = None
     provider_credentials: dict[str, dict[str, str]] | None = None
     remove_provider_config: str | None = None
     # Explicit confirmation that the caller accepts removing a provider whose
@@ -58,10 +51,6 @@ class OnboardingBody(BaseModel):
     embedding_provider: str | None = Field(None, min_length=1)
     embedding_model: str | None = Field(None, min_length=1)
     openai_api_key: str | None = Field(None, min_length=1)
-    anthropic_api_key: str | None = Field(None, min_length=1)
-    watsonx_api_key: str | None = Field(None, min_length=1)
-    watsonx_endpoint: str | None = Field(None, min_length=1)
-    watsonx_project_id: str | None = Field(None, min_length=1)
     ollama_endpoint: str | None = Field(None, min_length=1)
     provider_credentials: dict[str, dict[str, str]] | None = None
 
@@ -154,18 +143,6 @@ class OpenAIProviderConfig(BaseModel):
     configured: bool
 
 
-class AnthropicProviderConfig(BaseModel):
-    has_api_key: bool
-    configured: bool
-
-
-class WatsonXProviderConfig(BaseModel):
-    has_api_key: bool
-    endpoint: str | None
-    project_id: str | None
-    configured: bool
-
-
 class OllamaProviderConfig(BaseModel):
     endpoint: str | None
     configured: bool
@@ -185,8 +162,6 @@ class GenericProviderConfig(BaseModel):
 
 class ProvidersConfig(BaseModel):
     openai: OpenAIProviderConfig
-    anthropic: AnthropicProviderConfig
-    watsonx: WatsonXProviderConfig
     ollama: OllamaProviderConfig
     omniroute: OmniRouteProviderConfig
     custom: dict[str, GenericProviderConfig] = Field(default_factory=dict)
@@ -210,7 +185,6 @@ class KnowledgeConfig(BaseModel):
     vlm_max_tokens: int | None = None
     vlm_concurrency: int | None = None
     vlm_timeout: int | None = None
-    vlm_watsonx_api_version: str | None = None
 
 
 class AgentConfig(BaseModel):

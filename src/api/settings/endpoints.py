@@ -35,7 +35,6 @@ from api.settings.langflow_sync import (
 )
 from api.settings.models import (
     AgentConfig,
-    AnthropicProviderConfig,
     DoclingPresetBody,
     DoclingPresetResponse,
     GenericProviderConfig,
@@ -56,7 +55,6 @@ from api.settings.models import (
     SettingsResponse,
     SettingsUpdateBody,
     SettingsUpdateResponse,
-    WatsonXProviderConfig,
 )
 from config.config_manager import (
     ALLOWED_INDEX_NAME_PATTERNS,
@@ -152,24 +150,6 @@ def _custom_providers_for_settings(openrag_config) -> dict[str, GenericProviderC
             "openai",
             configured=openrag_config.providers.openai.configured,
             secret_fields=["api_key"] if openrag_config.providers.openai.api_key else [],
-        ),
-        "anthropic": payload(
-            "anthropic",
-            configured=openrag_config.providers.anthropic.configured,
-            secret_fields=["api_key"] if openrag_config.providers.anthropic.api_key else [],
-        ),
-        "watsonx": payload(
-            "watsonx",
-            configured=openrag_config.providers.watsonx.configured,
-            credential_values={
-                key: value
-                for key, value in {
-                    "api_base": openrag_config.providers.watsonx.endpoint,
-                    "project_id": openrag_config.providers.watsonx.project_id,
-                }.items()
-                if value
-            },
-            secret_fields=["api_key"] if openrag_config.providers.watsonx.api_key else [],
         ),
         "ollama": payload(
             "ollama",
@@ -334,16 +314,6 @@ async def get_settings(
                     has_api_key=bool(openrag_config.providers.openai.api_key),
                     configured=openrag_config.providers.openai.configured,
                 ),
-                anthropic=AnthropicProviderConfig(
-                    has_api_key=bool(openrag_config.providers.anthropic.api_key),
-                    configured=openrag_config.providers.anthropic.configured,
-                ),
-                watsonx=WatsonXProviderConfig(
-                    has_api_key=bool(openrag_config.providers.watsonx.api_key),
-                    endpoint=openrag_config.providers.watsonx.endpoint or None,
-                    project_id=openrag_config.providers.watsonx.project_id or None,
-                    configured=openrag_config.providers.watsonx.configured,
-                ),
                 ollama=OllamaProviderConfig(
                     endpoint=openrag_config.providers.ollama.endpoint or None,
                     configured=openrag_config.providers.ollama.configured,
@@ -371,7 +341,6 @@ async def get_settings(
                 vlm_max_tokens=knowledge_config.vlm_max_tokens,
                 vlm_concurrency=knowledge_config.vlm_concurrency,
                 vlm_timeout=knowledge_config.vlm_timeout,
-                vlm_watsonx_api_version=knowledge_config.vlm_watsonx_api_version,
             ),
             agent=AgentConfig(
                 llm_model=agent_config.llm_model,
@@ -426,10 +395,6 @@ async def update_settings(
             "llm_model",
             "embedding_model",
             "openai_api_key",
-            "anthropic_api_key",
-            "watsonx_api_key",
-            "watsonx_endpoint",
-            "watsonx_project_id",
             "ollama_endpoint",
             "provider_credentials",
             "remove_provider_config",
@@ -448,7 +413,6 @@ async def update_settings(
             "vlm_max_tokens",
             "vlm_concurrency",
             "vlm_timeout",
-            "vlm_watsonx_api_version",
         ]
         vlm_update = any(getattr(body, field) is not None for field in vlm_update_fields)
 
@@ -791,7 +755,7 @@ async def update_settings(
         # intentionally NOT synced into the Langflow flow JSON.
         if body.vlm_enabled:
             effective_vlm_provider = body.vlm_provider or current_config.knowledge.vlm_provider
-            if effective_vlm_provider in ("openai", "watsonx", "anthropic"):
+            if effective_vlm_provider == "openai":
                 vlm_provider_config = current_config.providers.get_provider_config(
                     effective_vlm_provider
                 )
@@ -799,12 +763,6 @@ async def update_settings(
                     not getattr(vlm_provider_config, "api_key", "")
                     or not vlm_provider_config.configured
                 )
-                if effective_vlm_provider == "watsonx":
-                    vlm_provider_missing = (
-                        vlm_provider_missing
-                        or not vlm_provider_config.endpoint
-                        or not vlm_provider_config.project_id
-                    )
                 if vlm_provider_missing:
                     return JSONResponse(
                         {
@@ -860,30 +818,6 @@ async def update_settings(
             config_updated = True
             provider_updated = True
 
-        if body.anthropic_api_key is not None and body.anthropic_api_key.strip():
-            working_config.providers.anthropic.api_key = body.anthropic_api_key.strip()
-            working_config.providers.anthropic.configured = True
-            config_updated = True
-            provider_updated = True
-
-        if body.watsonx_api_key is not None and body.watsonx_api_key.strip():
-            working_config.providers.watsonx.api_key = body.watsonx_api_key.strip()
-            working_config.providers.watsonx.configured = True
-            config_updated = True
-            provider_updated = True
-
-        if body.watsonx_endpoint is not None:
-            working_config.providers.watsonx.endpoint = body.watsonx_endpoint.strip()
-            working_config.providers.watsonx.configured = True
-            config_updated = True
-            provider_updated = True
-
-        if body.watsonx_project_id is not None:
-            working_config.providers.watsonx.project_id = body.watsonx_project_id.strip()
-            working_config.providers.watsonx.configured = True
-            config_updated = True
-            provider_updated = True
-
         if body.ollama_endpoint is not None:
             working_config.providers.ollama.endpoint = body.ollama_endpoint.strip()
             working_config.providers.ollama.configured = True
@@ -891,11 +825,7 @@ async def update_settings(
             provider_updated = True
 
         if body.remove_ollama_config:
-            other_providers_configured = (
-                working_config.providers.openai.configured
-                or working_config.providers.anthropic.configured
-                or working_config.providers.watsonx.configured
-            )
+            other_providers_configured = working_config.providers.openai.configured
             if not other_providers_configured:
                 return JSONResponse(
                     {
@@ -923,11 +853,7 @@ async def update_settings(
             provider_updated = True
 
         if body.remove_openai_config:
-            other_providers_configured = (
-                working_config.providers.anthropic.configured
-                or working_config.providers.watsonx.configured
-                or working_config.providers.ollama.configured
-            )
+            other_providers_configured = working_config.providers.ollama.configured
             if not other_providers_configured:
                 return JSONResponse(
                     {
@@ -949,63 +875,6 @@ async def update_settings(
                 working_config.agent.llm_model = _default_llm_model(fb)
             if working_config.knowledge.embedding_provider == "openai":
                 fb = _first_configured_embedding_provider(working_config, "openai")
-                working_config.knowledge.embedding_provider = fb
-                working_config.knowledge.embedding_model = _default_embedding_model(fb)
-            config_updated = True
-            provider_updated = True
-
-        if body.remove_anthropic_config:
-            other_providers_configured = (
-                working_config.providers.openai.configured
-                or working_config.providers.watsonx.configured
-                or working_config.providers.ollama.configured
-            )
-            if not other_providers_configured:
-                return JSONResponse(
-                    {
-                        "error": "Cannot remove Anthropic configuration: configure another model provider first."
-                    },
-                    status_code=400,
-                )
-            working_config.providers.anthropic.api_key = ""
-            working_config.providers.anthropic.configured = False
-            if working_config.agent.llm_provider == "anthropic":
-                fb = _first_configured_llm_provider(working_config, "anthropic")
-                working_config.agent.llm_provider = fb
-                working_config.agent.llm_model = _default_llm_model(fb)
-            # Anthropic is not a valid embedding provider; no embedding reset needed
-            config_updated = True
-            provider_updated = True
-
-        if body.remove_watsonx_config:
-            other_providers_configured = (
-                working_config.providers.openai.configured
-                or working_config.providers.anthropic.configured
-                or working_config.providers.ollama.configured
-            )
-            if not other_providers_configured:
-                return JSONResponse(
-                    {
-                        "error": "Cannot remove IBM watsonx.ai configuration: configure another model provider first."
-                    },
-                    status_code=400,
-                )
-            if not body.force_remove:
-                affected = await _affected_embedding_models(
-                    "watsonx", session_manager, user, models_service
-                )
-                if affected:
-                    return _embedding_conflict_response("IBM watsonx.ai", "watsonx", affected)
-            working_config.providers.watsonx.api_key = ""
-            working_config.providers.watsonx.endpoint = ""
-            working_config.providers.watsonx.project_id = ""
-            working_config.providers.watsonx.configured = False
-            if working_config.agent.llm_provider == "watsonx":
-                fb = _first_configured_llm_provider(working_config, "watsonx")
-                working_config.agent.llm_provider = fb
-                working_config.agent.llm_model = _default_llm_model(fb)
-            if working_config.knowledge.embedding_provider == "watsonx":
-                fb = _first_configured_embedding_provider(working_config, "watsonx")
                 working_config.knowledge.embedding_provider = fb
                 working_config.knowledge.embedding_model = _default_embedding_model(fb)
             config_updated = True
@@ -1190,26 +1059,6 @@ async def onboarding(
             current_config.providers.openai.configured = True
             config_updated = True
 
-        if body.anthropic_api_key:
-            current_config.providers.anthropic.api_key = body.anthropic_api_key.strip()
-            current_config.providers.anthropic.configured = True
-            config_updated = True
-
-        if body.watsonx_api_key:
-            current_config.providers.watsonx.api_key = body.watsonx_api_key.strip()
-            current_config.providers.watsonx.configured = True
-            config_updated = True
-
-        if body.watsonx_endpoint:
-            current_config.providers.watsonx.endpoint = body.watsonx_endpoint.strip()
-            current_config.providers.watsonx.configured = True
-            config_updated = True
-
-        if body.watsonx_project_id:
-            current_config.providers.watsonx.project_id = body.watsonx_project_id.strip()
-            current_config.providers.watsonx.configured = True
-            config_updated = True
-
         if body.ollama_endpoint:
             current_config.providers.ollama.endpoint = body.ollama_endpoint.strip()
             current_config.providers.ollama.configured = True
@@ -1226,17 +1075,6 @@ async def onboarding(
             if llm_provider == "openai" and current_config.providers.openai.api_key:
                 current_config.providers.openai.configured = True
                 logger.info("Marked OpenAI as configured (chosen as LLM provider)")
-            elif llm_provider == "anthropic" and current_config.providers.anthropic.api_key:
-                current_config.providers.anthropic.configured = True
-                logger.info("Marked Anthropic as configured (chosen as LLM provider)")
-            elif (
-                llm_provider == "watsonx"
-                and current_config.providers.watsonx.api_key
-                and current_config.providers.watsonx.endpoint
-                and current_config.providers.watsonx.project_id
-            ):
-                current_config.providers.watsonx.configured = True
-                logger.info("Marked WatsonX as configured (chosen as LLM provider)")
             elif llm_provider == "ollama" and current_config.providers.ollama.endpoint:
                 current_config.providers.ollama.configured = True
                 logger.info("Marked Ollama as configured (chosen as LLM provider)")
@@ -1247,14 +1085,6 @@ async def onboarding(
             if embedding_provider == "openai" and current_config.providers.openai.api_key:
                 current_config.providers.openai.configured = True
                 logger.info("Marked OpenAI as configured (chosen as embedding provider)")
-            elif (
-                embedding_provider == "watsonx"
-                and current_config.providers.watsonx.api_key
-                and current_config.providers.watsonx.endpoint
-                and current_config.providers.watsonx.project_id
-            ):
-                current_config.providers.watsonx.configured = True
-                logger.info("Marked WatsonX as configured (chosen as embedding provider)")
             elif embedding_provider == "ollama" and current_config.providers.ollama.endpoint:
                 current_config.providers.ollama.configured = True
                 logger.info("Marked Ollama as configured (chosen as embedding provider)")
@@ -1336,21 +1166,16 @@ async def onboarding(
             provider_fields_provided = any(
                 [
                     body.openai_api_key,
-                    body.anthropic_api_key,
-                    body.watsonx_api_key,
-                    body.watsonx_endpoint,
-                    body.watsonx_project_id,
                     body.ollama_endpoint,
                     body.provider_credentials,
                 ]
             )
 
             # Update global variables if any provider fields were provided
-            # or if existing config has values (for OpenAI/Anthropic that might already be set)
+            # or if existing config has values (for OpenAI that might already be set)
             if (
                 provider_fields_provided
                 or current_config.providers.openai.api_key != ""
-                or current_config.providers.anthropic.api_key != ""
                 or current_config.providers.any_configured()
             ):
                 await _update_langflow_global_variables(current_config, flows_service=flows_service)

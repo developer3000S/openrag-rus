@@ -17,7 +17,7 @@ from utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 _CREDENTIAL_PATTERNS = (
-    # OpenAI / Anthropic / Langflow-style secret prefixes echoed by providers.
+    # OpenAI / Langflow-style secret prefixes echoed by providers.
     re.compile(r"\bsk-(?:ant-|lf-)?[A-Za-z0-9_\-]{3,}\b"),
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]+\b"),
     re.compile(r"(?i)\b(?:api[_-]?key|apikey|x-api-key)\s*[:=]\s*['\"]?[^\s'\",}]+"),
@@ -34,16 +34,6 @@ def _redact_credentials(message: str) -> str:
 
 class OpenAIBody(BaseModel):
     api_key: str | None = None
-
-
-class AnthropicBody(BaseModel):
-    api_key: str | None = None
-
-
-class IBMBody(BaseModel):
-    api_key: str | None = None
-    endpoint: str | None = None
-    project_id: str | None = None
 
 
 def _models_error_response(exc: Exception) -> JSONResponse:
@@ -103,36 +93,6 @@ async def get_openai_models(
         return _models_error_response(e)
 
 
-async def get_anthropic_models(
-    body: AnthropicBody | None = None,
-    models_service=Depends(get_models_service),
-    user: User = Depends(require_permission("providers:read")),
-):
-    """Get available Anthropic models"""
-    try:
-        api_key = body.api_key if body else None
-        if not api_key:
-            try:
-                config = get_openrag_config()
-                api_key = config.providers.anthropic.api_key
-            except Exception as e:
-                logger.error(f"Failed to get config: {e}")
-
-        if not api_key:
-            return JSONResponse(
-                {
-                    "error": "Anthropic API key is required either in request body or in configuration"
-                },
-                status_code=400,
-            )
-
-        models = await models_service.get_anthropic_models(api_key=api_key)
-        return JSONResponse(models)
-    except Exception as e:
-        logger.error(f"Failed to get Anthropic models: {str(e)}")
-        return _models_error_response(e)
-
-
 async def get_ollama_models(
     endpoint: str | None = None,
     models_service=Depends(get_models_service),
@@ -159,62 +119,6 @@ async def get_ollama_models(
         logger.error(f"Failed to get Ollama models: {str(e)}")
         return _models_error_response(e)
 
-
-async def get_ibm_models(
-    body: IBMBody | None = None,
-    models_service=Depends(get_models_service),
-    user: User = Depends(require_permission("providers:read")),
-):
-    """Get available IBM Watson models"""
-    try:
-        api_key = body.api_key if body else None
-        endpoint = body.endpoint if body else None
-        project_id = body.project_id if body else None
-
-        config = get_openrag_config()
-        if not api_key:
-            try:
-                api_key = config.providers.watsonx.api_key
-            except Exception as e:
-                logger.error(f"Failed to get config: {e}")
-
-        if not api_key:
-            return JSONResponse(
-                {"error": "WatsonX API key is required either in request body or in configuration"},
-                status_code=400,
-            )
-
-        if not endpoint:
-            try:
-                endpoint = config.providers.watsonx.endpoint
-            except Exception as e:
-                logger.error(f"Failed to get config: {e}")
-
-        if not endpoint:
-            return JSONResponse(
-                {"error": "Endpoint is required either in request body or in configuration"},
-                status_code=400,
-            )
-
-        if not project_id:
-            try:
-                project_id = config.providers.watsonx.project_id
-            except Exception as e:
-                logger.error(f"Failed to get config: {e}")
-
-        if not project_id:
-            return JSONResponse(
-                {"error": "Project ID is required either in request body or in configuration"},
-                status_code=400,
-            )
-
-        models = await models_service.get_ibm_models(
-            endpoint=endpoint, api_key=api_key, project_id=project_id
-        )
-        return JSONResponse(models)
-    except Exception as e:
-        logger.error(f"Failed to get IBM models: {str(e)}")
-        return _models_error_response(e)
 
 
 async def get_model_catalog(

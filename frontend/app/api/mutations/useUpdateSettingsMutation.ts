@@ -32,25 +32,17 @@ export interface UpdateSettingsRequest {
   vlm_max_tokens?: number;
   vlm_concurrency?: number;
   vlm_timeout?: number;
-  vlm_watsonx_api_version?: string;
 
   // Provider-specific settings (for dialogs)
   model_provider?: string; // Deprecated, kept for backward compatibility
   api_key?: string;
   endpoint?: string;
-  project_id?: string;
 
   // Provider-specific API keys
   openai_api_key?: string;
-  anthropic_api_key?: string;
-  watsonx_api_key?: string;
-  watsonx_endpoint?: string;
-  watsonx_project_id?: string;
   ollama_endpoint?: string;
   remove_ollama_config?: boolean;
   remove_openai_config?: boolean;
-  remove_anthropic_config?: boolean;
-  remove_watsonx_config?: boolean;
   // Bypass the "this provider's embedding models are still in use" guard.
   force_remove?: boolean;
   provider_credentials?: Record<string, Record<string, string>>;

@@ -10,7 +10,7 @@ pytestmark = pytest.mark.skipif(
     reason="SDK integration tests skipped",
 )
 
-ALL_PROVIDERS = ("openai", "anthropic", "ollama", "watsonx")
+ALL_PROVIDERS = ("openai", "ollama", "omniroute")
 
 
 class TestModels:
@@ -23,7 +23,7 @@ class TestModels:
         Only `openai` is guaranteed to be configured by the test onboarding
         fixture (conftest.ensure_onboarding). The other providers are covered
         defensively in test_list_models_all_providers below, since a typical
-        local dev instance may not have anthropic/ollama/watsonx configured —
+        local dev instance may not have ollama/omniroute configured —
         the server responds with a 400 (ValidationError) in that case, not an
         empty list.
         """

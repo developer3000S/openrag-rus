@@ -567,7 +567,7 @@ JWT_CLAIMS_CACHE_MAX_SIZE = get_env_int("OPENRAG_JWT_CACHE_MAXSIZE", 1024)
 
 # TTL (seconds) for the in-process provider health-check response cache.
 # The banner polls GET /api/provider/health every 5-30 s per browser tab;
-# caching coalesces concurrent identical calls so watsonx round-trips are
+# caching coalesces concurrent identical calls so provider round-trips are
 # not fanned out. Must be >= 1; non-positive values fall back to the default.
 _raw_phc_ttl = get_env_int("OPENRAG_PROVIDER_HEALTH_TTL", 10)
 PROVIDER_HEALTH_CACHE_TTL_SECONDS = _raw_phc_ttl if _raw_phc_ttl > 0 else 10
@@ -1167,7 +1167,7 @@ class AppClients:
                 return self._patched_async_client
 
             # Load all provider credentials into environment for LiteLLM
-            # LiteLLM routes based on model name prefixes (openai/, ollama/, watsonx/, etc.)
+            # LiteLLM routes based on model name prefixes (openai/, ollama/, etc.)
             try:
                 config = get_openrag_config()
 
@@ -1180,24 +1180,6 @@ class AppClients:
                     # LiteLLM/MCP will handle routing to other providers if needed.
                     os.environ["OPENAI_API_KEY"] = "no-key-required"
                     logger.debug("Using dummy OpenAI API key to satisfy client constructor")
-
-                # Set Anthropic credentials
-                if config.providers.anthropic.api_key:
-                    os.environ["ANTHROPIC_API_KEY"] = config.providers.anthropic.api_key
-                    logger.debug("Loaded Anthropic API key from config")
-
-                # Set WatsonX credentials
-                if config.providers.watsonx.api_key:
-                    os.environ["WATSONX_API_KEY"] = config.providers.watsonx.api_key
-                if config.providers.watsonx.endpoint:
-                    os.environ["WATSONX_ENDPOINT"] = config.providers.watsonx.endpoint
-                    os.environ["WATSONX_API_BASE"] = (
-                        config.providers.watsonx.endpoint
-                    )  # LiteLLM expects this name
-                if config.providers.watsonx.project_id:
-                    os.environ["WATSONX_PROJECT_ID"] = config.providers.watsonx.project_id
-                if config.providers.watsonx.api_key:
-                    logger.debug("Loaded WatsonX credentials from config")
 
                 # Set Ollama endpoint
                 if config.providers.ollama.endpoint:
@@ -1264,7 +1246,7 @@ class AppClients:
 
             try:
                 # Run the probe only for OpenAI provider; local and other providers
-                # (Ollama, WatsonX) typically use HTTP/1.1 for reliability.
+                # (Ollama) typically use HTTP/1.1 for reliability.
                 if provider.lower() == "openai":
                     # Run the probe in a separate thread with its own event loop.
                     # Only the probe result (bool) crosses the thread boundary;
@@ -1798,13 +1780,6 @@ def _component_path(env_var: str, filename: str) -> str:
     return os.path.join(flows_dir, "components", filename)
 
 
-WATSONX_LLM_COMPONENT_PATH = _component_path("WATSONX_LLM_COMPONENT_PATH", "watsonx_llm.json")
-WATSONX_LLM_TEXT_COMPONENT_PATH = _component_path(
-    "WATSONX_LLM_TEXT_COMPONENT_PATH", "watsonx_llm_text.json"
-)
-WATSONX_EMBEDDING_COMPONENT_PATH = _component_path(
-    "WATSONX_EMBEDDING_COMPONENT_PATH", "watsonx_embedding.json"
-)
 OLLAMA_LLM_COMPONENT_PATH = _component_path("OLLAMA_LLM_COMPONENT_PATH", "ollama_llm.json")
 OLLAMA_LLM_TEXT_COMPONENT_PATH = _component_path(
     "OLLAMA_LLM_TEXT_COMPONENT_PATH", "ollama_llm_text.json"
@@ -1823,12 +1798,6 @@ OPENAI_LLM_COMPONENT_DISPLAY_NAME = os.getenv("OPENAI_LLM_COMPONENT_DISPLAY_NAME
 AGENT_COMPONENT_DISPLAY_NAME = os.getenv("AGENT_COMPONENT_DISPLAY_NAME", "Agent")
 
 # Provider-specific component IDs
-WATSONX_EMBEDDING_COMPONENT_DISPLAY_NAME = os.getenv(
-    "WATSONX_EMBEDDING_COMPONENT_DISPLAY_NAME", "IBM watsonx.ai Embeddings"
-)
-WATSONX_LLM_COMPONENT_DISPLAY_NAME = os.getenv(
-    "WATSONX_LLM_COMPONENT_DISPLAY_NAME", "IBM watsonx.ai"
-)
 
 OLLAMA_EMBEDDING_COMPONENT_DISPLAY_NAME = os.getenv(
     "OLLAMA_EMBEDDING_COMPONENT_DISPLAY_NAME", "Ollama Embeddings"

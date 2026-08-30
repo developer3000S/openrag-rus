@@ -29,36 +29,6 @@ from opensearchpy.exceptions import OpenSearchException, RequestError
 REQUEST_TIMEOUT = 60
 MAX_RETRIES = 5
 
-# watsonx.ai surfaces rate-limit state via these (mostly non-standard) response
-# headers. The IBM SDK acts on the x-requests-limit-* family directly; we log
-# them on a failed embedding call to aid plan/region tuning.
-_WATSONX_RATE_LIMIT_HEADERS = (
-    "x-requests-limit-rate",
-    "x-requests-limit-remaining",
-    "x-requests-limit-reset",
-    "Retry-After",
-)
-
-
-def _log_watsonx_rate_limit_headers(error: Exception) -> None:
-    """Best-effort diagnostic: log watsonx rate-limit headers from a failed call.
-
-    The watsonx SDK raises ``ApiRequestFailure``, which carries the originating
-    httpx/requests ``Response`` as ``.response``. On a 429 exhaustion we surface
-    the documented rate-limit headers so operators can tune throughput.
-    """
-    try:
-        response = getattr(error, "response", None)
-        headers = getattr(response, "headers", None)
-        if not headers:
-            return
-        status = getattr(response, "status_code", "unknown")
-        observed = {h: headers.get(h) for h in _WATSONX_RATE_LIMIT_HEADERS if headers.get(h) is not None}
-        if str(status) == "429" or observed:
-            logger.warning(f"watsonx rate-limit response (status={status}): {observed}")
-    except Exception as log_error:  # never let diagnostics mask the real error
-        logger.debug(f"Could not extract watsonx rate-limit headers: {log_error}")
-
 
 def normalize_model_name(model_name: str) -> str:
     """Normalize embedding model name for use as field suffix.
@@ -586,7 +556,7 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
 
         Priority: deployment > model > model_id > model_name
         This ensures we use the actual model being deployed, not just the configured model.
-        Supports multiple embedding providers (OpenAI, Watsonx, Cohere, etc.)
+        Supports multiple embedding providers (OpenAI, Ollama, OmniRoute, etc.)
 
         Args:
             embedding_obj: Specific embedding object to get name from (optional)
@@ -1413,111 +1383,78 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
             metadatas.append(data_copy)
         self.log(metadatas)
 
-        # Determine whether the selected embedding is watsonx/IBM. The watsonx
-        # SDK ships its own rate-limit machinery (input batching, proactive
-        # x-requests-limit-* TokenBucket throttling, and jittered exponential
-        # backoff on 429), so we lean on it instead of retrying on top of it.
-        # The type-name check also covers watsonx-hosted, non-"ibm/" models
-        # (e.g. intfloat/multilingual-e5-large).
-        is_ibm = (embedding_model and "ibm" in str(embedding_model).lower()) or (
-            selected_embedding and "watsonx" in type(selected_embedding).__name__.lower()
+        # Generic providers (OpenAI, Ollama, OmniRoute) embed per chunk in
+        # parallel with a rate-limit-aware tenacity retry.
+        vectors: list[list[float]] = [None] * len(texts)
+        from tenacity import (
+            retry,
+            retry_if_exception,
+            stop_after_attempt,
+            wait_exponential,
         )
-        logger.debug(f"Is IBM/watsonx embedding: {is_ibm}")
 
-        if is_ibm:
+        def is_rate_limit_error(exception: Exception) -> bool:
+            """Check if exception is a rate limit error (429)."""
+            error_str = str(exception).lower()
+            return "429" in error_str or "rate_limit" in error_str or "rate limit" in error_str
 
-            # Hand the full batch to the SDK and let it batch/throttle/retry.
-            # Retry attempts and base backoff are tunable via the SDK's own
-            # WATSONX_MAX_RETRIES / WATSONX_DELAY_TIME environment variables.
-            logger.info(
-                f"Embedding {len(texts)} chunks via watsonx SDK batch (SDK-managed throttle + 429 retry)"
-            )
+        def is_other_retryable_error(exception: Exception) -> bool:
+            """Check if exception is a transient network error worth retrying."""
+            if is_rate_limit_error(exception):
+                return False
+            return isinstance(exception, (ConnectionError, TimeoutError, OSError))
+
+        # Retry decorator for rate limit errors (longer backoff)
+        retry_on_rate_limit = retry(
+            retry=retry_if_exception(is_rate_limit_error),
+            stop=stop_after_attempt(5),
+            wait=wait_exponential(multiplier=2, min=2, max=30),
+            reraise=True,
+            before_sleep=lambda retry_state: logger.warning(
+                f"Rate limit hit for chunk (attempt {retry_state.attempt_number}/5), "
+                f"backing off for {retry_state.next_action.sleep:.1f}s"
+            ),
+        )
+
+        # Retry decorator for other errors (shorter backoff)
+        retry_on_other_errors = retry(
+            retry=retry_if_exception(is_other_retryable_error),
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=1, max=8),
+            reraise=True,
+            before_sleep=lambda retry_state: logger.warning(
+                f"Error embedding chunk (attempt {retry_state.attempt_number}/3), "
+                f"retrying in {retry_state.next_action.sleep:.1f}s: {retry_state.outcome.exception()}"
+            ),
+        )
+
+        def embed_chunk_with_retry(chunk_text: str, chunk_idx: int) -> list[float]:
+            """Embed a single chunk with rate-limit-aware retry logic."""
+
+            @retry_on_rate_limit
+            @retry_on_other_errors
+            def _embed(text: str) -> list[float]:
+                return selected_embedding.embed_documents([text])[0]
+
             try:
-                vectors: list[list[float]] = selected_embedding.embed_documents(texts)
-                logger.info(f"Successfully embedded {len(vectors)} chunks via watsonx SDK")
-            except Exception as embed_error:
-                _log_watsonx_rate_limit_headers(embed_error)
+                return _embed(chunk_text)
+            except Exception as e:
                 logger.error(
-                    f"Failed to embed {len(texts)} chunks via watsonx SDK. Error: {embed_error}",
+                    f"Failed to embed chunk {chunk_idx} after all retries: {e}",
+                    error=str(e),
                 )
                 raise
 
-        else:
-            # Non-watsonx providers (OpenAI, Ollama) lack the watsonx SDK's
-            # built-in rate-limit handling, so embed per chunk in parallel with
-            # a generic rate-limit-aware tenacity retry.
-            vectors: list[list[float]] = [None] * len(texts)
-            from tenacity import (
-                retry,
-                retry_if_exception,
-                stop_after_attempt,
-                wait_exponential,
-            )
-
-            def is_rate_limit_error(exception: Exception) -> bool:
-                """Check if exception is a rate limit error (429)."""
-                error_str = str(exception).lower()
-                return "429" in error_str or "rate_limit" in error_str or "rate limit" in error_str
-
-            def is_other_retryable_error(exception: Exception) -> bool:
-                """Check if exception is a transient network error worth retrying."""
-                if is_rate_limit_error(exception):
-                    return False
-                return isinstance(exception, (ConnectionError, TimeoutError, OSError))
-
-            # Retry decorator for rate limit errors (longer backoff)
-            retry_on_rate_limit = retry(
-                retry=retry_if_exception(is_rate_limit_error),
-                stop=stop_after_attempt(5),
-                wait=wait_exponential(multiplier=2, min=2, max=30),
-                reraise=True,
-                before_sleep=lambda retry_state: logger.warning(
-                    f"Rate limit hit for chunk (attempt {retry_state.attempt_number}/5), "
-                    f"backing off for {retry_state.next_action.sleep:.1f}s"
-                ),
-            )
-
-            # Retry decorator for other errors (shorter backoff)
-            retry_on_other_errors = retry(
-                retry=retry_if_exception(is_other_retryable_error),
-                stop=stop_after_attempt(3),
-                wait=wait_exponential(multiplier=1, min=1, max=8),
-                reraise=True,
-                before_sleep=lambda retry_state: logger.warning(
-                    f"Error embedding chunk (attempt {retry_state.attempt_number}/3), "
-                    f"retrying in {retry_state.next_action.sleep:.1f}s: {retry_state.outcome.exception()}"
-                ),
-            )
-
-            def embed_chunk_with_retry(chunk_text: str, chunk_idx: int) -> list[float]:
-                """Embed a single chunk with rate-limit-aware retry logic."""
-
-                @retry_on_rate_limit
-                @retry_on_other_errors
-                def _embed(text: str) -> list[float]:
-                    return selected_embedding.embed_documents([text])[0]
-
-                try:
-                    return _embed(chunk_text)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to embed chunk {chunk_idx} after all retries: {e}",
-                        error=str(e),
-                    )
-                    raise
-
-            max_workers = min(max(len(texts), 1), 8)
-            logger.debug(f"Using parallel processing with {max_workers} workers")
-
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(embed_chunk_with_retry, chunk, idx): idx
-                    for idx, chunk in enumerate(texts)
-                }
-                for future in as_completed(futures):
-                    idx = futures[future]
-                    vectors[idx] = future.result()
-
+        max_workers = min(max(len(texts), 1), 8)
+        logger.debug(f"Using parallel processing with {max_workers} workers")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(embed_chunk_with_retry, chunk, idx): idx
+                for idx, chunk in enumerate(texts)
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                vectors[idx] = future.result()
         if not vectors:
             self.log(f"No vectors generated from documents for model {embedding_model}.")
             return

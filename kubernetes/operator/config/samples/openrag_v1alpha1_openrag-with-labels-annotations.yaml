@@ -156,18 +156,11 @@ spec:
     credentialsSecret: opensearch-credentials
 
   llm:
-    provider: watsonx
-    model: ibm/granite-13b-chat-v2
+    provider: openai
+    model: gpt-4o-mini
 
   embedding:
-    provider: watsonx
-    model: ibm/slate-125m-english-rtrvr
-
-  watsonx:
-    endpoint: https://us-south.ml.cloud.ibm.com
-    projectId: your-project-id
-    apiKeySecret:
-      name: watsonx-credentials
-      key: apikey
+    provider: openai
+    model: text-embedding-3-small
 
 # Made with Bob

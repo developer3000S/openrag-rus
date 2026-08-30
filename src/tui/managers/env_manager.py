@@ -50,11 +50,7 @@ class EnvConfig:
     langflow_url_ingest_flow_id: str = "72c3d17c-2dac-4a73-b48a-6518473d7830"
 
     # Provider API keys and endpoints
-    anthropic_api_key: str = ""
     ollama_endpoint: str = ""
-    watsonx_api_key: str = ""
-    watsonx_endpoint: str = ""
-    watsonx_project_id: str = ""
 
     # OAuth settings
     google_oauth_client_id: str = ""
@@ -188,11 +184,7 @@ class EnvManager:
         """Map env vars to EnvConfig attribute names."""
         return {  # pragma: allowlist secret
             "OPENAI_API_KEY": "openai_api_key",  # pragma: allowlist secret
-            "ANTHROPIC_API_KEY": "anthropic_api_key",  # pragma: allowlist secret
             "OLLAMA_ENDPOINT": "ollama_endpoint",
-            "WATSONX_API_KEY": "watsonx_api_key",  # pragma: allowlist secret
-            "WATSONX_ENDPOINT": "watsonx_endpoint",
-            "WATSONX_PROJECT_ID": "watsonx_project_id",
             "OPENRAG_ENCRYPTION_KEY": "openrag_encryption_key",  # pragma: allowlist secret
             "OPENRAG_TENANT_ID": "openrag_tenant_id",
             "OPENRAG_ENFORCE_PREREQUISITES": "openrag_enforce_prerequisites",
@@ -358,28 +350,11 @@ class EnvManager:
                 "Invalid OpenAI API key format (should start with sk-)"
             )
 
-        # Import validation functions for new provider fields
-        from ..utils.validation import validate_anthropic_api_key
-
-        # Validate Anthropic API key format if provided
-        if self.config.anthropic_api_key:
-            if not validate_anthropic_api_key(self.config.anthropic_api_key):
-                self.config.validation_errors["anthropic_api_key"] = (
-                    "Invalid Anthropic API key format (should start with sk-ant-)"
-                )
-
         # Validate Ollama endpoint if provided
         if self.config.ollama_endpoint:
             if not validate_url(self.config.ollama_endpoint):
                 self.config.validation_errors["ollama_endpoint"] = (
                     "Invalid Ollama endpoint URL format"
-                )
-
-        # Validate IBM watsonx.ai endpoint if provided
-        if self.config.watsonx_endpoint:
-            if not validate_url(self.config.watsonx_endpoint):
-                self.config.validation_errors["watsonx_endpoint"] = (
-                    "Invalid IBM watsonx.ai endpoint URL format"
                 )
 
         # Validate documents paths only if provided (optional)
@@ -593,16 +568,8 @@ class EnvManager:
                 provider_vars = []
                 if self.config.openai_api_key:
                     provider_vars.append(("OPENAI_API_KEY", self.config.openai_api_key))
-                if self.config.anthropic_api_key:
-                    provider_vars.append(("ANTHROPIC_API_KEY", self.config.anthropic_api_key))
                 if self.config.ollama_endpoint:
                     provider_vars.append(("OLLAMA_ENDPOINT", self.config.ollama_endpoint))
-                if self.config.watsonx_api_key:
-                    provider_vars.append(("WATSONX_API_KEY", self.config.watsonx_api_key))
-                if self.config.watsonx_endpoint:
-                    provider_vars.append(("WATSONX_ENDPOINT", self.config.watsonx_endpoint))
-                if self.config.watsonx_project_id:
-                    provider_vars.append(("WATSONX_PROJECT_ID", self.config.watsonx_project_id))
 
                 if provider_vars:
                     f.write("# AI Provider API Keys and Endpoints\n")

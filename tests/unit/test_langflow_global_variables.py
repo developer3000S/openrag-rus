@@ -229,13 +229,7 @@ async def test_update_langflow_global_variables_marks_non_secret_provider_fields
 
     config = SimpleNamespace(
         providers=SimpleNamespace(
-            watsonx=SimpleNamespace(
-                api_key="watson-key",
-                project_id="watson-project",
-                endpoint="https://watson.example",
-            ),
             openai=SimpleNamespace(api_key="openai-key"),
-            anthropic=SimpleNamespace(api_key="anthropic-key"),
             ollama=SimpleNamespace(endpoint="http://ollama.local"),
         ),
         knowledge=SimpleNamespace(
@@ -255,10 +249,7 @@ async def test_update_langflow_global_variables_marks_non_secret_provider_fields
 
     await langflow_sync._update_langflow_global_variables(config, flows_service=flows_service)
 
-    names = {name for name, *_ in calls}
     assert ("OPENRAG_LLM_TOKEN", "None", True, "Credential") in calls
-    assert "ANTHROPIC_API_KEY" not in names
-    assert "WATSONX_APIKEY" not in names
     assert ("SELECTED_EMBEDDING_MODEL", "embedding-model", True, "Generic") in calls
     assert ("SELECTED_EMBEDDING_MODEL_PROVIDER", "OpenAI", True, "Generic") in calls
     assert ("SELECTED_LANGUAGE_MODEL_PROVIDER", "OpenAI", True, "Generic") in calls
@@ -295,7 +286,7 @@ async def test_ensure_required_langflow_global_variables_creates_generics_and_cr
 
     config = SimpleNamespace(
         providers=SimpleNamespace(
-            watsonx=SimpleNamespace(project_id="project", endpoint="https://watson.example"),
+            openai=SimpleNamespace(api_key="openai-key"),
             ollama=SimpleNamespace(endpoint="http://ollama.local"),
         ),
         knowledge=SimpleNamespace(
@@ -426,8 +417,8 @@ async def test_ensure_required_langflow_global_variables_handles_failed_delete_p
                     },
                     {
                         "id": "var-post-fail",
-                        "name": "WATSONX_URL",
-                        "value": "https://watson.example",
+                        "name": "COHERE_API_KEY",
+                        "value": "https://cohere.example",
                         "type": "Credential",
                     },
                     {
@@ -536,19 +527,19 @@ async def test_model_change_pushes_selected_model_globals(monkeypatch):
     config = SimpleNamespace(
         agent=SimpleNamespace(llm_model="gpt-4o-mini", llm_provider="openai"),
         knowledge=SimpleNamespace(
-            embedding_model="ibm/slate-125m-english-rtrvr-v2",
-            embedding_provider="watsonx",
+            embedding_model="nomic-embed-text",
+            embedding_provider="ollama",
         ),
     )
 
     await langflow_sync._update_langflow_model_values(
         config,
         _FlowsService(),
-        embedding_model="ibm/slate-125m-english-rtrvr-v2",
-        embedding_provider="watsonx",
+        embedding_model="nomic-embed-text",
+        embedding_provider="ollama",
     )
 
-    assert ("SELECTED_EMBEDDING_MODEL", "ibm/slate-125m-english-rtrvr-v2") in upserts
+    assert ("SELECTED_EMBEDDING_MODEL", "nomic-embed-text") in upserts
     assert not any(name == "SELECTED_LANGUAGE_MODEL" for name, _ in upserts)
 
 
@@ -566,18 +557,18 @@ async def test_llm_model_change_pushes_selected_language_model(monkeypatch):
             return {"updated": []}
 
     config = SimpleNamespace(
-        agent=SimpleNamespace(llm_model="ibm/granite-4-h-small", llm_provider="watsonx"),
-        knowledge=SimpleNamespace(embedding_model="", embedding_provider="watsonx"),
+        agent=SimpleNamespace(llm_model="qwen3", llm_provider="ollama"),
+        knowledge=SimpleNamespace(embedding_model="", embedding_provider="ollama"),
     )
 
     await langflow_sync._update_langflow_model_values(
         config,
         _FlowsService(),
-        llm_model="ibm/granite-4-h-small",
-        llm_provider="watsonx",
+        llm_model="qwen3",
+        llm_provider="ollama",
     )
 
-    assert ("SELECTED_LANGUAGE_MODEL", "ibm/granite-4-h-small") in upserts
+    assert ("SELECTED_LANGUAGE_MODEL", "qwen3") in upserts
 
 
 @pytest.mark.asyncio
@@ -612,9 +603,8 @@ async def test_selected_model_upsert_failure_is_not_fatal(monkeypatch):
 
 
 # --- guards carried over from main (#2265) -------------------------------
-# Those tests exercised OLLAMA_BASE_URL / WATSONX_URL / WATSONX_PROJECT_ID.
 # This branch stops publishing vendor endpoints to Langflow entirely - the
-# /v1 proxy holds the credentials - so those names are no longer in
+# /v1 proxy holds the credentials - so vendor base-url names are no longer in
 # LANGFLOW_GENERIC_GLOBAL_VARIABLES and the originals would have passed
 # vacuously. They are retargeted at OPENRAG_LLM_BASE_URL, which is generic
 # and can still resolve to "" when the proxy URL is not derivable.

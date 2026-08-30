@@ -23,8 +23,6 @@ import {
   PRIMARY_CAPABILITIES,
   supports,
 } from "@/app/settings/_helpers/model-info";
-import AnthropicLogo from "@/components/icons/anthropic-logo";
-import IBMLogo from "@/components/icons/ibm-logo";
 import OllamaLogo from "@/components/icons/ollama-logo";
 import OpenAILogo from "@/components/icons/openai-logo";
 import { cn } from "@/lib/utils";
@@ -92,8 +90,6 @@ const PROVIDER_LOGOS: Record<
   React.ComponentType<{ className?: string }>
 > = {
   openai: OpenAILogo,
-  anthropic: AnthropicLogo,
-  watsonx: IBMLogo,
   ollama: OllamaLogo,
 };
 

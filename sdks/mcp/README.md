@@ -113,7 +113,7 @@ All tools are auto-exposed from the `/v1/` API, and they are available immediate
 | `openrag_delete_document` | Delete a document from the knowledge base by filename. |
 | `openrag_get_settings` | Get current OpenRAG configuration (LLM, embeddings, chunk settings, system prompt). |
 | `openrag_update_settings` | Update OpenRAG configuration. All fields are optional. |
-| `openrag_list_models` | List available models for a provider (`openai`, `anthropic`, `ollama`, `watsonx`). |
+| `openrag_list_models` | List available models for a provider (`openai`, `ollama`, `omniroute`). |
 | `openrag_create_knowledge_filter` | Create a knowledge filter to scope searches and chats. |
 | `openrag_search_knowledge_filters` | Search knowledge filters by name or criteria. |
 | `openrag_get_knowledge_filter` | Get a knowledge filter by ID. |

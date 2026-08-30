@@ -61,8 +61,6 @@ async def test_migration_writes_all_sections_from_existing_yaml(
     yaml_payload = {
         "providers": {
             "openai": {"configured": True},
-            "anthropic": {},
-            "watsonx": {},
             "ollama": {},
         },
         "knowledge": {"embedding_model": "text-embedding-3-small", "chunk_size": 1024},

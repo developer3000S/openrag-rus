@@ -59,22 +59,8 @@ def validate_openai_api_key(key: str) -> bool:
     return key.startswith("sk-") and len(key) > 20
 
 
-def validate_anthropic_api_key(key: str) -> bool:
-    """Validate Anthropic API key format."""
-    if not key:
-        return False
-    return key.startswith("sk-ant-") and len(key) > 20
-
-
 def validate_ollama_endpoint(endpoint: str) -> bool:
     """Validate Ollama endpoint URL format."""
-    if not endpoint:
-        return False
-    return validate_url(endpoint)
-
-
-def validate_watsonx_endpoint(endpoint: str) -> bool:
-    """Validate IBM watsonx.ai endpoint URL format."""
     if not endpoint:
         return False
     return validate_url(endpoint)

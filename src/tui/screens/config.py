@@ -20,11 +20,9 @@ from zxcvbn import zxcvbn
 from ..config_fields import CONFIG_SECTIONS, ConfigField
 from ..managers.env_manager import EnvManager
 from ..utils.validation import (
-    validate_anthropic_api_key,
     validate_documents_paths,
     validate_ollama_endpoint,
     validate_openai_api_key,
-    validate_watsonx_endpoint,
 )
 
 
@@ -41,19 +39,6 @@ class OpenAIKeyValidator(Validator):
             return self.failure("Invalid OpenAI API key format (should start with sk-)")
 
 
-class AnthropicKeyValidator(Validator):
-    """Validator for Anthropic API keys."""
-
-    def validate(self, value: str) -> ValidationResult:
-        if not value:
-            return self.success()
-
-        if validate_anthropic_api_key(value):
-            return self.success()
-        else:
-            return self.failure("Invalid Anthropic API key format (should start with sk-ant-)")
-
-
 class OllamaEndpointValidator(Validator):
     """Validator for Ollama endpoint URLs."""
 
@@ -65,19 +50,6 @@ class OllamaEndpointValidator(Validator):
             return self.success()
         else:
             return self.failure("Invalid Ollama endpoint URL format")
-
-
-class WatsonxEndpointValidator(Validator):
-    """Validator for IBM watsonx.ai endpoint URLs."""
-
-    def validate(self, value: str) -> ValidationResult:
-        if not value:
-            return self.success()
-
-        if validate_watsonx_endpoint(value):
-            return self.success()
-        else:
-            return self.failure("Invalid watsonx.ai endpoint URL format")
 
 
 class DocumentsPathValidator(Validator):
@@ -194,9 +166,7 @@ class ConfigScreen(Screen):
     # Map validator functions to Textual Validator classes
     VALIDATOR_MAP: dict = {
         validate_openai_api_key: OpenAIKeyValidator,
-        validate_anthropic_api_key: AnthropicKeyValidator,
         validate_ollama_endpoint: OllamaEndpointValidator,
-        validate_watsonx_endpoint: WatsonxEndpointValidator,
     }
 
     # Fields that need custom rendering beyond the standard pattern

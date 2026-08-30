@@ -36,7 +36,7 @@ _PROVIDER_CREDENTIAL_ERROR_MARKERS = (
     "api key revoked",
     "revoked api key",
     "provided api key could not be found",
-    # IBM IAM returns this when the key still exists but is toggled off.
+    # Upstream identity services return this when the key still exists but is toggled off.
     "api key is disabled",
     "api key disabled",
     "authentication_error",
@@ -91,7 +91,7 @@ def _extract_balanced_json_object(text: str) -> str | None:
 def _humanize_provider_error_message(message: str) -> str:
     """Rewrite provider-specific messages into clearer user-facing copy."""
     lowered = message.lower()
-    # IBM IAM returns "could not be found" for invalid/unknown keys.
+    # Upstream identity services use "could not be found" for invalid/unknown keys.
     if "api key could not be found" in lowered:
         return "Provided API key is Invalid."
     return message
@@ -241,7 +241,7 @@ async def _probe_provider_credential_error(
 async def probe_provider_credential_error() -> str | None:
     """Return a credential error if any ingest-relevant provider key fails auth.
 
-    Langflow receives every configured provider key, so a revoked watsonx key can
+    Langflow receives every configured provider key, so a revoked provider key can
     crash ingest even when the selected embedding provider is OpenAI.
     """
     from config.settings import get_openrag_config
@@ -263,7 +263,7 @@ async def probe_provider_credential_error() -> str | None:
             config.agent.llm_model,
         ),
     ]
-    for name in ("openai", "anthropic", "watsonx", "ollama"):
+    for name in ("openai", "ollama"):
         candidates.append((name, getattr(config.providers, name, None), None, None))
 
     for provider, provider_config, embedding_model, llm_model in candidates:
@@ -443,7 +443,7 @@ async def resolve_chat_stream_error_message_async(
 
     Order matters: diagnose the selected chat LLM (credentials + model) before
     scanning other configured keys. Otherwise a revoked secondary key can mask
-    the real chat failure (e.g. missing watsonx model).
+    the real chat failure (e.g. a missing model).
     """
     cleaned = resolve_chat_stream_error_message(text)
     if is_generic_upstream_error(cleaned) or is_langflow_transport_error(cleaned):
@@ -474,7 +474,7 @@ def _parse_json_error_message(error_text: str) -> str:
         error_data = json.loads(error_text)
 
         if isinstance(error_data, dict):
-            # WatsonX format: {"errors": [{"code": "...", "message": "..."}], ...}
+            # Vendor format: {"errors": [{"code": "...", "message": "..."}], ...}
             if "errors" in error_data and isinstance(error_data["errors"], list):
                 errors = error_data["errors"]
                 if len(errors) > 0 and isinstance(errors[0], dict):
@@ -497,7 +497,7 @@ def _parse_json_error_message(error_text: str) -> str:
             if "message" in error_data:
                 return error_data["message"]
 
-            # IBM IAM format: {"errorCode": "...", "errorMessage": "...", "context": {...}}
+            # IAM format: {"errorCode": "...", "errorMessage": "...", "context": {...}}
             if "errorMessage" in error_data:
                 return error_data["errorMessage"]
 
@@ -519,7 +519,7 @@ def _extract_error_details(response: httpx.Response) -> str:
 
         # Common error response formats
         if isinstance(error_data, dict):
-            # WatsonX format: {"errors": [{"code": "...", "message": "..."}], ...}
+            # Vendor format: {"errors": [{"code": "...", "message": "..."}], ...}
             if "errors" in error_data and isinstance(error_data["errors"], list):
                 errors = error_data["errors"]
                 if len(errors) > 0 and isinstance(errors[0], dict):
@@ -540,11 +540,11 @@ def _extract_error_details(response: httpx.Response) -> str:
                     if message:
                         return message
 
-            # Anthropic / generic: {"message": "..."}
+            # Vendor / generic: {"message": "..."}
             if "message" in error_data:
                 return error_data["message"]
 
-            # IBM IAM format: {"errorCode": "...", "errorMessage": "...", "context": {...}}
+            # IAM format: {"errorCode": "...", "errorMessage": "...", "context": {...}}
             if "errorMessage" in error_data:
                 return error_data["errorMessage"]
 
@@ -582,12 +582,12 @@ async def validate_provider_setup(
     Validate provider setup by testing completion with tool calling and embedding.
 
     Args:
-        provider: Provider name ('openai', 'watsonx', 'ollama', 'anthropic')
+        provider: Provider name ('openai', 'ollama')
         api_key: API key for the provider (optional for ollama)
         embedding_model: Embedding model to test
         llm_model: LLM model to test
-        endpoint: Provider endpoint (required for ollama and watsonx)
-        project_id: Project ID (required for watsonx)
+        endpoint: Provider endpoint (required for ollama)
+        project_id: Project ID (unused)
         test_completion: If True, performs full validation with completion/embedding tests (consumes credits).
                         If False, performs lightweight validation (no credits consumed). Default: False.
 
@@ -608,7 +608,7 @@ async def validate_provider_setup(
             f"Starting validation for provider: {provider_lower} (test_completion={test_completion})"
         )
 
-        if provider_lower not in {"openai", "watsonx", "ollama", "anthropic"}:
+        if provider_lower not in {"openai", "ollama"}:
             await _test_litellm_provider(
                 provider=provider_lower,
                 credentials=supplied,
@@ -691,12 +691,8 @@ async def test_lightweight_health(
 
     if provider == "openai":
         await _test_openai_lightweight_health(api_key)
-    elif provider == "watsonx":
-        await _test_watsonx_lightweight_health(api_key, endpoint, project_id)
     elif provider == "ollama":
         await _test_ollama_lightweight_health(endpoint)
-    elif provider == "anthropic":
-        await _test_anthropic_lightweight_health(api_key)
     else:
         raise ValueError(f"Unknown provider: {provider}")
 
@@ -712,12 +708,8 @@ async def test_completion_with_tools(
 
     if provider == "openai":
         await _test_openai_completion_with_tools(api_key, llm_model)
-    elif provider == "watsonx":
-        await _test_watsonx_completion_with_tools(api_key, llm_model, endpoint, project_id)
     elif provider == "ollama":
         await _test_ollama_completion_with_tools(llm_model, endpoint)
-    elif provider == "anthropic":
-        await _test_anthropic_completion_with_tools(api_key, llm_model)
     else:
         raise ValueError(f"Unknown provider: {provider}")
 
@@ -733,8 +725,6 @@ async def test_embedding(
 
     if provider == "openai":
         await _test_openai_embedding(api_key, embedding_model)
-    elif provider == "watsonx":
-        await _test_watsonx_embedding(api_key, embedding_model, endpoint, project_id)
     elif provider == "ollama":
         await _test_ollama_embedding(embedding_model, endpoint)
     else:
@@ -965,223 +955,6 @@ async def _test_openai_embedding(api_key: str, embedding_model: str) -> None:
         raise
 
 
-# IBM Watson validation functions
-async def _test_watsonx_lightweight_health(api_key: str, endpoint: str, project_id: str) -> None:
-    """Test WatsonX API key validity with lightweight check.
-
-    Only checks if the API key is valid by getting a bearer token.
-    Does not consume credits by avoiding model inference requests.
-    """
-    try:
-        # Get bearer token from IBM IAM - this validates the API key without consuming credits
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                "https://iam.cloud.ibm.com/identity/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                    "apikey": api_key,
-                },
-                timeout=10.0,  # Short timeout for lightweight check
-            )
-
-            if token_response.status_code != 200:
-                error_details = _extract_error_details(token_response)
-                logger.error(
-                    f"IBM IAM token request failed: {token_response.status_code} - {error_details}"
-                )
-                raise Exception(error_details)
-
-            bearer_token = token_response.json().get("access_token")
-            if not bearer_token:
-                raise Exception("No access token received from IBM")
-
-            logger.info("WatsonX lightweight health check passed - API key is valid")
-
-    except httpx.TimeoutException:
-        logger.error("WatsonX lightweight health check timed out")
-        raise Exception("WatsonX API request timed out") from None
-    except Exception as e:
-        logger.error(f"WatsonX lightweight health check failed: {str(e)}")
-        raise
-
-
-async def _test_watsonx_completion_with_tools(
-    api_key: str, llm_model: str, endpoint: str, project_id: str
-) -> None:
-    """Test IBM Watson completion with tool calling."""
-    try:
-        # Get bearer token from IBM IAM
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                "https://iam.cloud.ibm.com/identity/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                    "apikey": api_key,
-                },
-                timeout=30.0,
-            )
-
-            if token_response.status_code != 200:
-                error_details = _extract_error_details(token_response)
-                logger.error(
-                    f"IBM IAM token request failed: {token_response.status_code} - {error_details}"
-                )
-                raise Exception(error_details)
-
-            bearer_token = token_response.json().get("access_token")
-            if not bearer_token:
-                raise Exception("No access token received from IBM")
-
-        headers = {
-            "Authorization": f"Bearer {bearer_token}",
-            "Content-Type": "application/json",
-        }
-
-        # Test completion with tools
-        url = f"{endpoint}/ml/v1/text/chat"
-        params = {"version": "2026-04-15"}
-        payload = {
-            "model_id": llm_model,
-            "project_id": project_id,
-            "messages": [{"role": "user", "content": "What tools do you have available?"}],
-            "tools": [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_weather",
-                        "description": "Get the current weather",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "location": {"type": "string", "description": "The city and state"}
-                            },
-                            "required": ["location"],
-                        },
-                    },
-                }
-            ],
-            "max_tokens": 50,
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url,
-                headers=headers,
-                params=params,
-                json=payload,
-                timeout=30.0,
-            )
-
-            if response.status_code != 200:
-                error_details = _extract_error_details(response)
-                logger.error(
-                    f"IBM Watson completion test failed: {response.status_code} - {error_details}"
-                )
-                # If error_details is still JSON, parse it to extract just the message
-                parsed_details = _parse_json_error_message(error_details)
-                raise Exception(parsed_details)
-
-            logger.info("IBM Watson completion with tool calling test passed")
-
-    except httpx.TimeoutException:
-        logger.error("IBM Watson completion test timed out")
-        raise Exception("Request timed out") from None
-    except Exception as e:
-        logger.error(f"IBM Watson completion test failed: {str(e)}")
-        # If the error message contains JSON, parse it to extract just the message
-        error_str = str(e)
-        if "IBM Watson API error: " in error_str:
-            json_part = error_str.split("IBM Watson API error: ", 1)[1]
-            parsed_message = _parse_json_error_message(json_part)
-            if parsed_message != json_part:
-                raise Exception(parsed_message) from e
-        raise
-
-
-async def _test_watsonx_embedding(
-    api_key: str, embedding_model: str, endpoint: str, project_id: str
-) -> None:
-    """Test IBM Watson embedding generation."""
-    try:
-        # Get bearer token from IBM IAM
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                "https://iam.cloud.ibm.com/identity/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                    "apikey": api_key,
-                },
-                timeout=30.0,
-            )
-
-            if token_response.status_code != 200:
-                error_details = _extract_error_details(token_response)
-                logger.error(
-                    f"IBM IAM token request failed: {token_response.status_code} - {error_details}"
-                )
-                raise Exception(error_details)
-
-            bearer_token = token_response.json().get("access_token")
-            if not bearer_token:
-                raise Exception("No access token received from IBM")
-
-        headers = {
-            "Authorization": f"Bearer {bearer_token}",
-            "Content-Type": "application/json",
-        }
-
-        # Test embedding
-        url = f"{endpoint}/ml/v1/text/embeddings"
-        params = {"version": "2026-04-15"}
-        payload = {
-            "model_id": embedding_model,
-            "project_id": project_id,
-            "inputs": ["test embedding"],
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url,
-                headers=headers,
-                params=params,
-                json=payload,
-                timeout=30.0,
-            )
-
-            if response.status_code != 200:
-                error_details = _extract_error_details(response)
-                logger.error(
-                    f"IBM Watson embedding test failed: {response.status_code} - {error_details}"
-                )
-                # If error_details is still JSON, parse it to extract just the message
-                parsed_details = _parse_json_error_message(error_details)
-                raise Exception(parsed_details)
-
-            data = response.json()
-            if not data.get("results") or len(data["results"]) == 0:
-                raise Exception("No embedding data returned")
-
-            logger.info("IBM Watson embedding test passed")
-
-    except httpx.TimeoutException:
-        logger.error("IBM Watson embedding test timed out")
-        raise Exception("Request timed out") from None
-    except Exception as e:
-        logger.error(f"IBM Watson embedding test failed: {str(e)}")
-        # If the error message contains JSON, parse it to extract just the message
-        error_str = str(e)
-        if "IBM Watson API error: " in error_str:
-            json_part = error_str.split("IBM Watson API error: ", 1)[1]
-            parsed_message = _parse_json_error_message(json_part)
-            if parsed_message != json_part:
-                raise Exception(parsed_message) from e
-        raise
-
-
-# Ollama validation functions
 async def _test_ollama_lightweight_health(endpoint: str) -> None:
     """Test Ollama availability with lightweight status check.
 
@@ -1304,93 +1077,3 @@ async def _test_ollama_embedding(embedding_model: str, endpoint: str) -> None:
         raise
 
 
-# Anthropic validation functions
-async def _test_anthropic_lightweight_health(api_key: str) -> None:
-    """Test Anthropic API key validity with lightweight check.
-
-    Only checks if the API key is valid without consuming credits.
-    Uses the /v1/models endpoint which doesn't consume credits.
-    """
-    try:
-        headers = {
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        }
-
-        response = await _http_request_with_retry(
-            "GET",
-            "https://api.anthropic.com/v1/models",
-            headers=headers,
-            timeout=30.0,
-        )
-
-        if response.status_code != 200:
-            error_details = _extract_error_details(response)
-            logger.error(
-                f"Anthropic lightweight health check failed: {response.status_code} - {error_details}"
-            )
-            raise Exception(error_details)
-
-        logger.info("Anthropic lightweight health check passed")
-
-    except httpx.TimeoutException:
-        logger.error("Anthropic lightweight health check timed out")
-        raise Exception("Anthropic API request timed out") from None
-    except Exception as e:
-        logger.error(f"Anthropic lightweight health check failed: {str(e)}")
-        raise
-
-
-async def _test_anthropic_completion_with_tools(api_key: str, llm_model: str) -> None:
-    """Test Anthropic completion with tool calling."""
-    try:
-        headers = {
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        }
-
-        # Simple tool calling test with Anthropic's format
-        payload = {
-            "model": llm_model,
-            "max_tokens": 50,
-            "messages": [{"role": "user", "content": "What tools do you have available?"}],
-            "tools": [
-                {
-                    "name": "get_weather",
-                    "description": "Get the current weather",
-                    "input_schema": {
-                        "type": "object",
-                        "properties": {
-                            "location": {"type": "string", "description": "The city and state"}
-                        },
-                        "required": ["location"],
-                    },
-                }
-            ],
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers=headers,
-                json=payload,
-                timeout=30.0,
-            )
-
-            if response.status_code != 200:
-                error_details = _extract_error_details(response)
-                logger.error(
-                    f"Anthropic completion test failed: {response.status_code} - {error_details}"
-                )
-                raise Exception(error_details)
-
-            logger.info("Anthropic completion with tool calling test passed")
-
-    except httpx.TimeoutException:
-        logger.error("Anthropic completion test timed out")
-        raise Exception("Request timed out") from None
-    except Exception as e:
-        logger.error(f"Anthropic completion test failed: {str(e)}")
-        raise
