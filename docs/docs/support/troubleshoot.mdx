@@ -363,6 +363,49 @@ For more information, see [Model availability and performance issues](#model-ava
 
 If your model is compatible with OpenRAG, and it isn't exhibiting any obvious errors, then you can use RAG best practices to refine the response quality, such as [knowledge filters](/knowledge-filters) and prompt engineering.
 
+## Browser console errors on LAN access {#browser-console-errors-on-lan-access}
+
+When accessing OpenRAG from a browser on a machine other than the server (for example, `http://192.168.0.12:3000`), the browser console may report `ECONNREFUSED` and `500` errors on every `/api/*` request, and the page fails to load.
+
+The cause is that the Next.js development server's built-in proxy only forwards requests whose `Origin` header matches one of the values in `NEXT_ALLOWED_DEV_ORIGINS`. By default it only allows `http://localhost:3000`.
+
+To fix this, add your LAN hostname (or IP with port) to the `NEXT_ALLOWED_DEV_ORIGINS` environment variable in your OpenRAG `.env` file:
+
+```bash title=".env"
+NEXT_ALLOWED_DEV_ORIGINS=http://localhost:3000,http://192.168.0.12:3000
+```
+
+Then rebuild the frontend and restart the `openrag-frontend` container:
+
+```bash
+docker compose build openrag-frontend && docker compose up -d openrag-frontend
+```
+
+You can also use a hostname instead of an IP address, for example `http://openrag-server:3000`.
+
+## Langflow flow build blocked: outdated components {#langflow-flow-outdated-components}
+
+If the **Chat** page reports a `Flow build blocked: outdated components must be updated before running` error, one or more components embedded in the Langflow flow JSON files have `code_hash` values that don't match the current Langflow container image. This typically occurs after upgrading OpenRAG or rebuilding the `openrag-langflow` image.
+
+The components affected are `Chat Input`, `Agent`, and `MCP Tools` — these are standard Langflow components whose embedded source code in the flow files becomes stale when the container image ships a newer version.
+
+To fix this, run the `sync_flow_components.py` script, which extracts the current component code from the running `openrag-langflow` container and updates all flow JSON files:
+
+```bash
+python scripts/sync_flow_components.py
+```
+
+Then update the flows in the Langflow database and restart the container:
+
+```bash
+# Copy updated flows into the container (the /app/flows directory is a volume)
+docker compose restart openrag-langflow
+```
+
+The script reads from `/app/flows/component_index.json` inside the running container — the same index file that Langflow uses internally to validate component hashes — so the updated flows are guaranteed to be trusted by the current server.
+
+If the flows are already stored in the Langflow SQLite database (which is the case for an existing deployment), you also need to update them there. Restarting `openrag-langflow` after updating the disk files is sufficient because Langflow loads flows from the database at startup, and the database is updated by the disk files when the container restarts with a fresh `langflow-data` volume mount.
+
 ## Cannot detect GPU with Fedora or local Ollama
 
 If your machine has GPU support, but OpenRAG is having problems detecting or using the GPU, you might see errors like the following:

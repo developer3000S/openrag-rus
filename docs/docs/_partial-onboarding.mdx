@@ -9,6 +9,10 @@ The first time you start the OpenRAG application, you must complete the applicat
 
 To complete onboarding, you must configure at least one language model and one embedding model.
 
+:::info Configure via `.env` to skip the wizard
+If all required configuration is already provided through environment variables (such as `OPENAI_API_KEY`, `OLLAMA_*`, `OMNIROUTE_*`, `EMBEDDING_PROVIDER`, and `EMBEDDING_MODEL`), the onboarding wizard is automatically skipped and the application loads the configuration directly from the environment. See [Configuration](/reference/configuration) for the full list of supported environment variables.
+:::
+
 You can use the same provider or different providers for your language model and embedding model.
 Additionally, you can select multiple embedding models.
 
