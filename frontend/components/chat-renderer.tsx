@@ -58,9 +58,9 @@ export function ChatRenderer({
   const [currentStep, setCurrentStep] = useState<number>(
     settings?.onboarding?.current_step ?? 0,
   );
-  const [showLayout, setShowLayout] = useState<boolean>(
-    (settings?.onboarding?.current_step ?? 0) >= TOTAL_ONBOARDING_STEPS,
-  );
+  // Onboarding wizard is disabled — config is loaded from .env. Always show
+  // the regular layout (sidebar + main content) and skip the wizard entirely.
+  const [showLayout, setShowLayout] = useState<boolean>(true);
 
   // Sync from settings without an extra render cycle
   const [prevSettingsStep, setPrevSettingsStep] = useState(

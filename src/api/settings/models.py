@@ -54,6 +54,8 @@ class OnboardingBody(BaseModel):
     ollama_endpoint: str | None = Field(None, min_length=1)
     provider_credentials: dict[str, dict[str, str]] | None = None
 
+    model_config = {"extra": "ignore"}
+
 
 class CitationDisplayData(BaseModel):
     file_path: str | None = None

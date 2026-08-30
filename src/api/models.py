@@ -138,12 +138,14 @@ async def get_omniroute_models(
         if not endpoint or not api_key:
             try:
                 config = get_openrag_config()
-                if not endpoint and hasattr(config.providers, "omniroute"):
-                    endpoint = getattr(config.providers.omniroute, "endpoint", None) or getattr(
-                        config.providers.omniroute, "api_base", None
-                    )
-                if not api_key and hasattr(config.providers, "omniroute"):
-                    api_key = config.providers.omniroute.api_key
+                custom = config.providers.custom or {}
+                stored = custom.get("omniroute")
+                if stored is not None:
+                    creds = stored.credentials or {}
+                    if not endpoint:
+                        endpoint = creds.get("api_base") or creds.get("endpoint")
+                    if not api_key:
+                        api_key = creds.get("api_key")
             except Exception as e:
                 logger.error(f"Failed to get omniroute config: {e}")
 

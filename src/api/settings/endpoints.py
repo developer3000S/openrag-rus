@@ -971,7 +971,7 @@ async def update_settings(
 
 
 async def onboarding(
-    body: OnboardingBody,
+    body: OnboardingBody | None = None,
     flows_service=Depends(get_flows_service),
     session_manager=Depends(get_session_manager),
     document_service=Depends(get_document_service),
@@ -998,6 +998,13 @@ async def onboarding(
 
         # Update configuration
         config_updated = False
+
+        # No body supplied — onboarding runs with whatever is already in the
+        # loaded config (typically seeded from .env). Skip every field update
+        # and jump straight to bootstrap so any pending Langflow/MCP work still
+        # happens, but we don't reject the call.
+        if body is None:
+            body = OnboardingBody()
 
         # Update agent settings (LLM)
         llm_model_selected = None
@@ -1095,7 +1102,10 @@ async def onboarding(
             logger.info("Sample data ingestion enabled via environment variable")
 
         if not config_updated:
-            return JSONResponse({"error": "No valid fields provided for update"}, status_code=400)
+            return JSONResponse(
+                {"message": "Configuration already loaded from environment variables", "status": "ok"},
+                status_code=200,
+            )
 
         # Validate provider setup before initializing OpenSearch index
         # Use full validation with completion tests (test_completion=True) to ensure provider health during onboarding
