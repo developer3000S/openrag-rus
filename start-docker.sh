@@ -7,6 +7,12 @@
 #     поэтому Backend публикуется на 8001, а порты 9000/9443 не затрагиваются.
 #   * Образы пересобраны на Debian, чтобы работать на CPU без x86-64-v3.
 #
+# Для принудительной пересборки образов с нуля (свежий код, без кэша) позови:
+#   ./start-docker.sh --rebuild
+#   # или
+#   OPENRAG_REBUILD=1 ./start-docker.sh
+# По умолчанию используется быстрая схема (готовый Debian-образ/кэш).
+#
 # Все обязательные переменные окружения подставляются здесь, если они ещё не
 # заданы в окружении/в .env. Это нужно, потому что без них контейнеры падают:
 #   - OpenSearch    -> отклоняет слабый/похожий на имя пользователя пароль;
@@ -27,6 +33,19 @@ cd "$(dirname "$0")"
 
 ENV_FILE="${OPENRAG_ENV_FILE:-.env}"
 LANGFLOW_DATA_PATH="${LANGFLOW_DATA_PATH:-./langflow-data}"
+
+# Принудительная пересборка образов с нуля (без кэша). Включается либо флагом
+# --rebuild, либо переменной окружения OPENRAG_REBUILD=1. Без неё, по умолчанию,
+# используется быстрая схема: готовый Debian-образ перетегируется на :latest,
+# либо (если его нет) образ собирается обычным docker build с кэшем.
+OPENRAG_REBUILD="${OPENRAG_REBUILD:-0}"
+for arg in "$@"; do
+  case "${arg}" in
+    --rebuild|-r)
+      OPENRAG_REBUILD=1
+      ;;
+  esac
+done
 
 # ---------------------------------------------------------------------------
 # Хелперы для чтения и записи значений секретов в .env.
@@ -232,15 +251,25 @@ fi
 # реестра langflowai/*:latest (на базе UBI/Red Hat) падают с ошибкой
 # "Fatal glibc error: CPU does not support x86-64-v3" — их glibc собран на
 # x86-64-v3 и не умеет fallback-диспатча. Рабочие локальные сборки на базе
-# Debian помечены тегом :debian-fix. Ниже мы либо перетегируем их на :latest
-# (быстро), либо, если их нет, собираем заново, чтобы `docker compose up`
-# использовал именно Debian-образы, а не сломанные из реестра.
+# Debian помечены тегом :debian-fix.
+#
+# По умолчанию (быстро): если готовый :debian-fix-образ есть, перетегируем его
+# на :latest; если нет — собираем обычным docker build (с кэшем).
+#
+# При OPENRAG_REBUILD=1 (или флаге --rebuild): удаляем старые образы (:latest и
+# :debian-fix) и собираем с нуля через docker build --no-cache, чтобы
+# гарантированно применить изменённый код без кэша.
 # ---------------------------------------------------------------------------
 build_or_retag_image() {
   local image="$1"   # полное имя образа без тега (например langflowai/openrag-backend)
   local dockerfile="$2"
 
-  if docker image inspect "${image}:debian-fix" >/dev/null 2>&1; then
+  if [[ "${OPENRAG_REBUILD}" == "1" ]]; then
+    echo ">>> [пересборка] Удаляю старые образы ${image}:latest, ${image}:debian-fix (если есть)..."
+    docker rmi "${image}:latest" "${image}:debian-fix" >/dev/null 2>&1 || true
+    echo ">>> [пересборка] Собираю Debian-образ ${image}:latest с нуля (без кэша): ${dockerfile}..."
+    docker build --no-cache -t "${image}:latest" -f "${dockerfile}" .
+  elif docker image inspect "${image}:debian-fix" >/dev/null 2>&1; then
     echo ">>> Использую готовый Debian-образ ${image}:debian-fix -> ${image}:latest"
     docker tag "${image}:debian-fix" "${image}:latest"
   else
