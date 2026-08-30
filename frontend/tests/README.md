@@ -1,53 +1,53 @@
-# Testing
+# Тестирование
 
-This directory and its subdirectories generally contain tests for the application.
+Этот каталог и его подкаталоги в целом содержат тесты для приложения.
 
-## End-to-End (E2E) Tests
+## Сквозные (E2E) тесты
 
-The E2E tests for the frontend are written using Playwright and are located in the `frontend/tests` or configured to run from the `frontend` directory.
+Сквозные тесты для фронтенда написаны на Playwright и находятся в `frontend/tests` или настроены для запуска из каталога `frontend`.
 
-### Running E2E Tests Locally
+### Запуск E2E-тестов локально
 
-To run the Playwright E2E tests locally, follow these steps:
+Чтобы запустить E2E-тесты Playwright локально, выполните следующие шаги:
 
-#### 1. Setup Infrastructure
-The E2E tests require the full stack (database, API, frontend, etc.) to be running.
-We provide a setup script that automates the process of starting the full stack and waiting for all services to be ready:
+#### 1. Настройка инфраструктуры
+E2E-тестам нужен запущенный полный стек (база данных, API, фронтенд и т. д.).
+Мы предоставляем скрипт настройки, который автоматизирует запуск полного стека и ожидание готовности всех сервисов:
 
 ```bash
 ./scripts/setup-e2e.sh
 ```
 
-**What this script does:**
-- Pre-creates required directories (e.g., `langflow-data`).
-- Starts the full stack using `make dev-cpu`.
-- Starts the docling service using `make docling`.
-- Waits for services (OpenSearch, Langflow, and Frontend) to become healthy before proceeding.
+**Что делает этот скрипт:**
+- Предварительно создаёт требуемые каталоги (например, `langflow-data`).
+- Запускает полный стек с помощью `make dev-cpu`.
+- Запускает сервис docling с помощью `make docling`.
+- Ожидает, пока сервисы (OpenSearch, Langflow и Frontend) станут работоспособными, прежде чем продолжить.
 
-**Note:** This script uses your standard root `.env` file configuration. Specialized `.env.test` files are no longer required.
+**Примечание:** Этот скрипт использует вашу стандартную конфигурацию файла `.env` в корне. Специализированные файлы `.env.test` больше не требуются.
 
-**Alternative: Manual Setup**
-If you prefer not to use the automated setup script, you can manually start the infrastructure:
-1. Ensure your root `.env` is configured correctly.
-2. Start the services: `make dev-cpu`
-3. Start docling: `make docling`
-4. Wait for all services to be healthy: `make health`
+**Альтернатива: ручная настройка**
+Если вы предпочитаете не использовать автоматизированный скрипт настройки, вы можете запустить инфраструктуру вручную:
+1. Убедитесь, что ваш корневой `.env` настроен корректно.
+2. Запустите сервисы: `make dev-cpu`
+3. Запустите docling: `make docling`
+4. Дождитесь работоспособности всех сервисов: `make health`
 
-#### 2. Run Playwright Tests
-Once the infrastructure is up and running, you can execute the Playwright tests.
-Navigate to the `frontend` directory and run the tests:
+#### 2. Запуск тестов Playwright
+Как только инфраструктура запущена и работает, вы можете выполнить тесты Playwright.
+Перейдите в каталог `frontend` и запустите тесты:
 
 ```bash
 cd frontend
 npx playwright test
 ```
 
-*Note: You may need to run `npx playwright install` first to download the required browsers if you haven't already.*
-*The Playwright configuration is set to reuse existing servers on ports 8000 (Backend) and 3000 (Frontend) if they are already running.*
+*Примечание: возможно, вам потребуется сначала выполнить `npx playwright install`, чтобы загрузить требуемые браузеры, если вы ещё этого не сделали.*
+*Конфигурация Playwright настроена на повторное использование существующих серверов на портах 8000 (Backend) и 3000 (Frontend), если они уже запущены.*
 
-### Teardown
+### Выключение
 
-After running the tests, you can shut down and clean up the test infrastructure using the Makefile:
+После запуска тестов вы можете остановить и очистить тестовую инфраструктуру с помощью Makefile:
 
 ```bash
 make clean

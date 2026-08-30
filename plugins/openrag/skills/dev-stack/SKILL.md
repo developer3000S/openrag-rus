@@ -1,64 +1,64 @@
 ---
 name: openrag_dev_stack
-description: Start, monitor, restart, or stop the local OpenRAG dev stack (Docker infra + host backend + host frontend). Use when the user says "start the dev stack", "run the app locally", "restart the backend/frontend", "factory-reset", "is the stack up?", or asks to bring services up/down for local development.
+description: Запуск, мониторинг, перезапуск или остановка локального стека разработки OpenRAG (инфраструктура Docker + бэкенд на хосте + фронтенд на хосте). Используйте, когда пользователь говорит «запусти стек разработки», «запусти приложение локально», «перезапусти бэкенд/фронтенд», «factory-reset», «стек работает?» или просит поднять/опустить сервисы для локальной разработки.
 ---
 
-# OpenRAG local dev stack
+# Локальный стек разработки OpenRAG
 
-The local dev setup has three parts that normally run in three terminals. As an agent, run them from one session: part 1 is a detached Docker command, parts 2 and 3 are long-running processes you must launch **in the background** (however your runtime runs a command without blocking) and monitor.
+Локальная среда разработки состоит из трёх частей, которые обычно запускаются в трёх терминалах. Как агент, запускайте их из одной сессии: часть 1 — это отсоединённая команда Docker, части 2 и 3 — долгоработающие процессы, которые вы должны запускать **в фоновом режиме** (как ваш рантайм выполняет команду без блокировки) и контролировать.
 
-Run everything from the repo root.
+Запускайте всё из корня репозитория.
 
-## 1. Infrastructure (OpenSearch, Langflow, Dashboards)
+## 1. Инфраструктура (OpenSearch, Langflow, Dashboards)
 
 ```bash
 make dev-local-cpu
 ```
 
-- Builds langflow/opensearch images if needed, then starts containers detached — the command itself exits when containers are up. Run it in the foreground (first run can take several minutes if images need building; use a generous timeout).
-- Endpoints: Langflow http://localhost:7860, OpenSearch http://localhost:9200, Dashboards http://localhost:5601.
-- Verify with `docker compose ps` — expect `opensearch`, `dashboards`, and `langflow` containers running/healthy. Wait for OpenSearch to be healthy before starting the backend.
+- Собирает образы langflow/opensearch при необходимости, затем запускает контейнеры отсоединённо — сама команда завершается, когда контейнеры запущены. Запускайте её на переднем плане (первый запуск может занять несколько минут, если нужно собрать образы; используйте щедрый таймаут).
+- Конечные точки: Langflow http://localhost:7860, OpenSearch http://localhost:9200, Dashboards http://localhost:5601.
+- Проверьте с помощью `docker compose ps` — ожидайте контейнеры `opensearch`, `dashboards` и `langflow` в состоянии running/healthy. Дождитесь, пока OpenSearch станет работоспособным, прежде чем запускать бэкенд.
 
-## 2. Backend (host process)
+## 2. Бэкенд (процесс на хосте)
 
 ```bash
 make backend
 ```
 
-- Long-running (uvicorn via `uv run python src/main.py`) — launch in the background with its output captured somewhere you can read back. If your runtime already captures background output, don't also tee to a log file.
-- Requires `.env` in the repo root (the target errors clearly if missing; fix by copying `.env.example`).
-- Serves on http://localhost:8000 (`OPENRAG_BACKEND_PORT`). Ready when uvicorn logs "Application startup complete".
+- Долгоработающий (uvicorn через `uv run python src/main.py`) — запускайте в фоновом режиме, сохраняя его вывод в место, откуда вы можете его прочитать. Если ваш рантайм уже сохраняет фоновый вывод, не дублируйте его в файл журнала через tee.
+- Требуется `.env` в корне репозитория (целевая команда выдаёт явную ошибку, если его нет; исправьте, скопировав `.env.example`).
+- Работает на http://localhost:8000 (`OPENRAG_BACKEND_PORT`). Готов, когда uvicorn регистрирует «Application startup complete».
 
-## 3. Frontend (host process)
+## 3. Фронтенд (процесс на хосте)
 
 ```bash
 make frontend
 ```
 
-- Long-running (Next.js dev server) — launch in the background with its output captured, same as the backend.
-- Installs `frontend/node_modules` automatically on first run.
-- Serves on http://localhost:3000 (`FRONTEND_PORT`). Ready when Next prints the local URL / "Ready".
+- Долгоработающий (сервер разработки Next.js) — запускайте в фоновом режиме с сохранением вывода, так же как бэкенд.
+- Автоматически устанавливает `frontend/node_modules` при первом запуске.
+- Работает на http://localhost:3000 (`FRONTEND_PORT`). Готов, когда Next печатает локальный URL / «Ready».
 
-## Restarting
+## Перезапуск
 
-- **Backend only** (the most common case): kill the backend background process, then relaunch `make backend` in the background as in section 2. Same pattern for the frontend.
-- **Containers only**: `make stop` then `make dev-local-cpu`.
-- **Factory reset** (fix a wedged stack by wiping all state): destructive — removes volumes, `langflow-data/`, `config/`, `data/`, and JWT keys. Get explicit user confirmation before running it. The plain target prompts interactively for "yes", which an agent can't answer, so run:
+- **Только бэкенд** (самый частый случай): убейте фоновый процесс бэкенда, затем заново запустите `make backend` в фоновом режиме, как в разделе 2. Тот же порядок для фронтенда.
+- **Только контейнеры**: `make stop`, затем `make dev-local-cpu`.
+- **Factory reset** (исправить застрявший стек, стерев всё состояние): разрушительно — удаляет тома, `langflow-data/`, `config/`, `data/` и ключи JWT. Получите явное подтверждение пользователя перед запуском. Обычная целевая задача интерактивно запрашивает «yes», на что агент ответить не может, поэтому запускайте:
 
   ```bash
   make factory-reset FORCE=true
   ```
 
-  Then bring the stack back up: `make dev-local-cpu`, and relaunch backend and frontend.
+  Затем поднимите стек заново: `make dev-local-cpu`, и заново запустите бэкенд и фронтенд.
 
-## Monitoring
+## Мониторинг
 
-- Watch the backend and frontend processes' output for errors; report crashes to the user rather than silently restarting on a loop.
-- Container logs: `make logs-os`, `make logs-lf`, or `docker compose logs -f <service>`.
-- If the user wants to watch backend/frontend logs themselves, point them at wherever your runtime exposes background process output, or give them a `tail -f` command for the process's log/output file.
-- Status check: `docker compose ps` for containers; `curl -s http://localhost:8000/health` for the backend and `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` for the frontend.
+- Следите за выводом процессов бэкенда и фронтенда на предмет ошибок; сообщайте о сбоях пользователю, а не молча перезапускайте в цикле.
+- Журналы контейнеров: `make logs-os`, `make logs-lf` или `docker compose logs -f <сервис>`.
+- Если пользователь хочет сам следить за журналами бэкенда/фронтенда, укажите ему на то место, где ваш рантайм предоставляет вывод фоновых процессов, или дайте команду `tail -f` для файла журнала/вывода процесса.
+- Проверка состояния: `docker compose ps` для контейнеров; `curl -s http://localhost:8000/health` для бэкенда и `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` для фронтенда.
 
-## Stopping
+## Остановка
 
-- Backend/frontend: kill their background processes.
-- Containers: `make stop` (stops and removes all OpenRAG containers). `make clean` also removes volumes — destructive, only on explicit request.
+- Бэкенд/фронтенд: убейте их фоновые процессы.
+- Контейнеры: `make stop` (останавливает и удаляет все контейнеры OpenRAG). `make clean` также удаляет тома — разрушительно, только по явному запросу.

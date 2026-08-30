@@ -1,88 +1,88 @@
-# Contributing to OpenRAG
+# Внесение вклада в OpenRAG
 
-![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
-![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+![Добро пожаловать, вклад приветствуется](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)
+![Лицензия](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.13+-blue.svg)
 ![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
 
-**Thank you for your interest in contributing to OpenRAG!** 🎉
+**Спасибо за ваш интерес к вкладу в OpenRAG!** 🎉
 
-Whether you're fixing a bug, adding a feature, improving documentation, or just exploring — every contribution matters and helps make OpenRAG better for everyone.
+Исправляете ли вы ошибку, добавляете функцию, улучшаете документацию или просто исследуете проект — каждый вклад имеет значение и помогает сделать OpenRAG лучше для всех.
 
-This guide will help you set up your development environment and start contributing quickly.
+Это руководство поможет вам настроить среду разработки и начать вносить вклад.
 
-## Table of Contents
+## Оглавление
 
-- [Quickstart](#quickstart)
-- [What's in this repo](#whats-in-this-repo)
-- [Prerequisites](#prerequisites)
-- [Initial Setup](#initial-setup)
-- [Development Workflows](#development-workflows)
-- [Frequently Used `make` Commands](#frequently-used-make-commands)
-- [Service Management](#service-management)
-- [Reset & Cleanup](#reset--cleanup)
-- [Makefile Help System](#makefile-help-system)
-- [Testing](#testing)
-- [Project Structure](#project-structure)
-- [Troubleshooting](#troubleshooting)
-- [Code Style](#code-style)
-- [Create a Pull Request](#create-a-pull-request)
+- [Быстрый старт](#quickstart)
+- [Что в этом репозитории](#whats-in-this-repo)
+- [Предварительные требования](#prerequisites)
+- [Первоначальная настройка](#initial-setup)
+- [Рабочие процессы разработки](#development-workflows)
+- [Часто используемые команды `make`](#frequently-used-make-commands)
+- [Управление сервисами](#service-management)
+- [Сброс и очистка](#reset--cleanup)
+- [Система справки Makefile](#makefile-help-system)
+- [Тестирование](#testing)
+- [Структура проекта](#project-structure)
+- [Устранение неполадок](#troubleshooting)
+- [Стиль кода](#code-style)
+- [Создание pull request](#create-a-pull-request)
 
 ---
 
-## Quickstart
+## Быстрый старт
 
-Get OpenRAG running in three commands:
+Запустите OpenRAG тремя командами:
 
 ```bash
-make check_tools  # Verify you have all prerequisites
-make setup        # Install dependencies and create .env
-make dev          # Start OpenRAG
+make check_tools  # Проверьте, что у вас есть все предварительные требования
+make setup        # Установите зависимости и создайте .env
+make dev          # Запустите OpenRAG
 ```
 
-OpenRAG is now running locally on the following ports:
+Теперь OpenRAG работает локально на следующих портах:
 
-- **Frontend**: http://localhost:3000
+- **Фронтенд**: http://localhost:3000
 - **Langflow**: http://localhost:7860
 
 ---
 
-## What's in this repo
+## Что в этом репозитории
 
-OpenRAG is a monorepo. Here's the shape of it and where to look depending on what you're changing:
+OpenRAG — монорепозиторий. Вот его структура и то, куда смотреть в зависимости от того, что вы меняете:
 
-| Component | Where | What it is |
+| Компонент | Где находится | Что это |
 |---|---|---|
-| **Backend** | `src/` | A FastAPI (Python 3.13) service — REST API, RBAC/auth, connectors, document ingestion orchestration, and the built-in MCP server. Runs on port `8000`. |
-| **Frontend** | `frontend/` | A Next.js (App Router, TypeScript, Tailwind) app — chat UI, document management, settings. Runs on port `3000` and proxies API/MCP calls to the backend. |
-| **Langflow** | (pulled as a container, or built from source — see [Branch Development](#c-branch-development-custom-langflow)) | Powers the actual RAG flows: ingestion, retrieval, and agentic nudges. Runs on port `7860`. |
-| **Python SDK** | `sdks/python/` | `openrag-sdk` on PyPI — a thin client for the OpenRAG REST API (chat, search, ingestion, settings). See `sdks/python/README.md` or run `/sdk`. |
-| **TypeScript SDK** | `sdks/typescript/` | `openrag-sdk` on npm — same API surface as the Python SDK, for JS/TS apps. See `sdks/typescript/README.md`. |
-| **MCP** | built into the backend, docs in `sdks/mcp/` | OpenRAG exposes a [Model Context Protocol](https://modelcontextprotocol.io/) server over streamable HTTP at `/mcp` (no separate process to run). Any MCP client (Cursor, Claude Desktop, etc.) can connect using an OpenRAG API key. The old standalone `openrag-mcp` PyPI package is deprecated — use the built-in endpoint instead. |
-| **Flows** | `flows/` | Langflow flow JSON definitions (ingestion, retrieval, agents) that ship with OpenRAG. |
-| **Docs** | `docs/` | The docs site source (published to [docs.openr.ag](https://docs.openr.ag)). |
-| **Kubernetes operator** | `kubernetes/operator/` | Go operator for running OpenRAG on Kubernetes; see `kubernetes/operator/README.md`. |
+| **Бэкенд** | `src/` | Сервис на FastAPI (Python 3.13) — REST API, RBAC/аутентификация, коннекторы, оркестрация приёма документов и встроенный MCP-сервер. Работает на порту `8000`. |
+| **Фронтенд** | `frontend/` | Приложение на Next.js (App Router, TypeScript, Tailwind) — чат-интерфейс, управление документами, настройки. Работает на порту `3000` и проксирует вызовы API/MCP на бэкенд. |
+| **Langflow** | (подтягивается как контейнер или собирается из исходников — см. [Разработка веток](#c-branch-development-custom-langflow)) | Обеспечивает фактические RAG-процессы: приём, извлечение и агентные подсказки. Работает на порту `7860`. |
+| **Python SDK** | `sdks/python/` | `openrag-sdk` на PyPI — тонкий клиент для REST API OpenRAG (чат, поиск, приём, настройки). См. `sdks/python/README.md` или запустите `/sdk`. |
+| **TypeScript SDK** | `sdks/typescript/` | `openrag-sdk` на npm — та же поверхность API, что и у Python SDK, для JS/TS-приложений. См. `sdks/typescript/README.md`. |
+| **MCP** | встроен в бэкенд, документация в `sdks/mcp/` | OpenRAG предоставляет сервер [Model Context Protocol](https://modelcontextprotocol.io/) по потоковому HTTP по адресу `/mcp` (без отдельного процесса для запуска). Любой MCP-клиент (Cursor, Claude Desktop и т. д.) может подключиться с помощью API-ключа OpenRAG. Старый отдельный PyPI-пакет `openrag-mcp` устарел — используйте вместо него встроенную конечную точку. |
+| **Flows** | `flows/` | JSON-определения Langflow-процессов (приём, извлечение, агенты), которые поставляются с OpenRAG. |
+| **Документация** | `docs/` | Исходный код сайта документации (публикуется на [docs.openr.ag](https://docs.openr.ag)). |
+| **Оператор Kubernetes** | `kubernetes/operator/` | Go-оператор для запуска OpenRAG на Kubernetes; см. `kubernetes/operator/README.md`. |
 
-If you're a first-time contributor, the [Development Workflows](#development-workflows) section below is the fastest way to get all of these running locally.
+Если вы впервые вносите вклад, раздел [Рабочие процессы разработки](#development-workflows) ниже — самый быстрый способ запустить всё это локально.
 
 ---
 
-## Prerequisites
+## Предварительные требования
 
-### Required Tools
+### Обязательные инструменты
 
-| Tool | Version | Installation |
+| Инструмент | Версия | Установка |
 |------|---------|--------------|
-| Docker, Podman, or Colima | Latest | [Docker](https://docs.docker.com/get-docker/), [Podman](https://podman.io/getting-started/installation), or [Colima](https://github.com/abiosoft/colima) |
-| Python | 3.13+ | With [uv](https://github.com/astral-sh/uv) package manager |
-| Node.js | 18+ | With npm |
-| Make | Any | Usually pre-installed on macOS/Linux |
+| Docker, Podman или Colima | Последняя | [Docker](https://docs.docker.com/get-docker/), [Podman](https://podman.io/getting-started/installation) или [Colima](https://github.com/abiosoft/colima) |
+| Python | 3.13+ | С пакетным менеджером [uv](https://github.com/astral-sh/uv) |
+| Node.js | 18+ | С npm |
+| Make | Любая | Обычно предустановлен на macOS/Linux |
 
-You only need one container runtime — pick whichever you're comfortable with. On macOS, most contributors use either Colima (lightweight, scriptable, no GUI) or Podman.
+Вам нужен только один контейнерный рантайм — выбирайте тот, с которым вам удобно. На macOS большинство участников используют либо Colima (лёгкий, скриптуемый, без GUI), либо Podman.
 
-### Colima Setup (macOS)
+### Настройка Colima (macOS)
 
-[Colima](https://github.com/abiosoft/colima) runs a Linux VM and exposes a standard `docker` CLI/socket, so the Makefile's `docker compose` commands work without any changes — it's a drop-in replacement for Docker Desktop.
+[Colima](https://github.com/abiosoft/colima) запускает Linux-виртуальную машину и предоставляет стандартный CLI/сокет `docker`, поэтому команды `docker compose` из Makefile работают без изменений — это полноценная замена Docker Desktop.
 
 ```bash
 colima start \
@@ -95,59 +95,59 @@ colima start \
   --port-forwarder grpc
 ```
 
-What these flags are doing:
+Что означают эти флаги:
 
-| Flag | Why |
+| Флаг | Зачем |
 |---|---|
-| `--cpu 8 --memory 16` | Gives the VM enough headroom to run OpenSearch, Langflow, and Docling side by side. Lower is fine for a lighter stack (e.g. just `make backend` + `make frontend`), but 8 CPU / 16GB is comfortable for the full stack. |
-| `--vm-type vz` | Uses Apple's native Virtualization.framework instead of QEMU — noticeably faster on Apple Silicon. |
-| `--vz-rosetta` | Enables Rosetta translation inside the VM, so `x86_64` images run at near-native speed on Apple Silicon. |
-| `--mount-type virtiofs` | Faster host↔VM filesystem mounts than the default (matters for volume-mounted dev reloads). |
-| `--ssh-port 2222` | Avoids clashing with a real SSH server on port 22. |
-| `--port-forwarder grpc` | More reliable port forwarding for the many ports OpenRAG exposes (3000, 7860, 8000, 9200, 5601, ...). |
+| `--cpu 8 --memory 16` | Даёт виртуальной машине достаточно ресурсов для запуска OpenSearch, Langflow и Docling бок о бок. Меньше подойдёт для более лёгкого стека (например, только `make backend` + `make frontend`), но 8 CPU / 16 ГБ комфортно для полного стека. |
+| `--vm-type vz` | Использует нативный фреймворк Virtualization.framework от Apple вместо QEMU — заметно быстрее на Apple Silicon. |
+| `--vz-rosetta` | Включает трансляцию Rosetta внутри виртуальной машины, поэтому образы `x86_64` работают почти на нативной скорости на Apple Silicon. |
+| `--mount-type virtiofs` | Более быстрые монтирования ФС хоста↔ВМ, чем по умолчанию (важно для перезагрузок разработки с монтируемыми томами). |
+| `--ssh-port 2222` | Позволяет избежать конфликта с настоящим SSH-сервером на порту 22. |
+| `--port-forwarder grpc` | Более надёжная переадресация портов для множества портов, которые открывает OpenRAG (3000, 7860, 8000, 9200, 5601, ...). |
 
-Once Colima is running, `docker` (and `docker compose`) point at it automatically — everything in this guide works as-is. Useful commands:
+После запуска Colima команды `docker` (и `docker compose`) автоматически указывают на неё — всё в этом руководстве работает как есть. Полезные команды:
 
 ```bash
-colima status   # check the VM is running
-colima stop     # stop the VM
-colima delete   # remove the VM entirely (fresh start)
+colima status   # проверьте, что виртуальная машина запущена
+colima stop     # остановите виртуальную машину
+colima delete   # полностью удалите виртуальную машину (с чистого листа)
 ```
 
 > [!TIP]
-> If you resize the VM later, just `colima stop` and re-run `colima start` with the new flags.
+> Если позже вы измените размер виртуальной машины, просто выполните `colima stop` и повторно запустите `colima start` с новыми флагами.
 
-### Podman Setup (macOS)
+### Настройка Podman (macOS)
 
-If using Podman on macOS, configure the VM with enough memory (8GB recommended):
+Если вы используете Podman на macOS, настройте виртуальную машину с достаточным объёмом памяти (рекомендуется 8 ГБ):
 
 ```bash
-# Stop and remove existing machine (if any)
+# Остановите и удалите существующую машину (если есть)
 podman machine stop
 podman machine rm
 
-# Create new machine with 8GB RAM and 4 CPUs
+# Создайте новую машину с 8 ГБ ОЗУ и 4 процессорами
 podman machine init --memory 8192 --cpus 4
 podman machine start
 ```
 
 > [!IMPORTANT]
-> 8GB RAM is the minimum recommended for running OpenRAG smoothly. If you experience crashes or slowness, increase the memory allocation.
+> 8 ГБ ОЗУ — минимум, рекомендуемый для плавной работы OpenRAG. Если вы столкнётесь со сбоями или замедлениями, увеличьте выделение памяти.
 
-### Verify Prerequisites
+### Проверка предварительных требований
 
 ```bash
 make check_tools
 ```
 
-You should see: `All required tools are installed.`
+Вы должны увидеть: `Все требуемые инструменты установлены.`
 
 ---
 
-## Initial Setup
+## Первоначальная настройка
 
 
-1. Clone the repo and setup the project:
+1. Клонируйте репозиторий и настройте проект:
 
    ```bash
    git clone https://github.com/langflow-ai/openrag.git
@@ -155,7 +155,7 @@ You should see: `All required tools are installed.`
    make setup
    ```
 
-2. Configure the required environment variables before starting OpenRAG:
+2. Настройте обязательные переменные окружения перед запуском OpenRAG:
 
    ```env
    OPENAI_API_KEY=
@@ -164,353 +164,353 @@ You should see: `All required tools are installed.`
    LANGFLOW_SUPERUSER_PASSWORD=
    ```
 
-   The `OPENSEARCH_PASSWORD` must adhere to the [OpenSearch password complexity requirements](https://docs.opensearch.org/latest/security/configuration/demo-configuration/#setting-up-a-custom-admin-password).
+   Значение `OPENSEARCH_PASSWORD` должно соответствовать [требованиям к сложности пароля OpenSearch](https://docs.opensearch.org/latest/security/configuration/demo-configuration/#setting-up-a-custom-admin-password).
 
-   If `LANGFLOW_SUPERUSER_PASSWORD` isn't set, then the Langflow instance starts without authentication enabled.
+   Если `LANGFLOW_SUPERUSER_PASSWORD` не задан, то экземпляр Langflow запускается без включённой аутентификации.
 
-   For more information, see the [OpenRAG environment variables reference](https://docs.openr.ag/reference/configuration).
+   Дополнительные сведения см. в [справочнике по переменным окружения OpenRAG](https://docs.openr.ag/reference/configuration).
 
-3. Start OpenRAG using one of the options described in the next section.
+3. Запустите OpenRAG, используя один из вариантов, описанных в следующем разделе.
     ```bash
-    make dev      # With GPU support
-    # or
-    make dev-cpu  # CPU only
+    make dev      # С поддержкой GPU
+    # или
+    make dev-cpu  # Только CPU
     ```
 
 ---
 
-## Development Workflows
+## Рабочие процессы разработки
 
-There are multiple ways to start OpenRAG based on your use case:
+Существует несколько способов запустить OpenRAG в зависимости от вашего варианта использования:
 
-* Local development environment: Recommended for development.
-* Full Docker stack: Simple build that runs everything in containers. Not ideal for development. Best for testing the full system.
-* Branch development: Build OpenRAG with a fork or branch of the [Langflow repository](https://github.com/langflow-ai/langflow).
-* Docling only: Run the Docling service by itself.
+* Локальная среда разработки: рекомендуется для разработки.
+* Полный Docker-стек: простая сборка, которая запускает всё в контейнерах. Не идеальна для разработки. Лучше всего подходит для тестирования всей системы.
+* Разработка веток: сборка OpenRAG с форком или веткой [репозитория Langflow](https://github.com/langflow-ai/langflow).
+* Только Docling: запуск сервиса Docling отдельно.
 
-### Full Docker Stack (Simplest)
+### Полный Docker-стек (самое простое)
 
-Everything runs in containers. Best for testing the full system.
+Всё работает в контейнерах. Лучше всего подходит для тестирования всей системы.
 
 ```bash
-make dev          # Start with GPU support
-make dev-cpu      # Start with CPU only
-make stop         # Stop and remove all containers
+make dev          # Запуск с поддержкой GPU
+make dev-cpu      # Запуск только с CPU
+make stop         # Остановка и удаление всех контейнеров
 ```
 
-### B) Local Development (Recommended for Development)
+### B) Локальная разработка (рекомендуется для разработки)
 
 > [!TIP]
-> This is the **recommended workflow** for active development. It provides faster code reloading and easier debugging.
+> Это **рекомендуемый рабочий процесс** для активной разработки. Он обеспечивает более быструю перезагрузку кода и упрощённую отладку.
 
-Run infrastructure in Docker, but backend/frontend locally for faster iteration.
+Запускайте инфраструктуру в Docker, а бэкенд/фронтенд локально для более быстрой итерации.
 
 ```bash
-# Terminal 1: Start infrastructure (OpenSearch, Langflow, Dashboards)
+# Терминал 1: Запустите инфраструктуру (OpenSearch, Langflow, Dashboards)
 make dev-local-cpu
 
-# Terminal 2: Run backend locally
+# Терминал 2: Запустите бэкенд локально
 make backend
 
-# Terminal 3: Run frontend locally
+# Терминал 3: Запустите фронтенд локально
 make frontend
 
-# Terminal 4 (optional): Start docling for document processing
+# Терминал 4 (необязательно): Запустите docling для обработки документов
 make docling
 ```
 
-**Benefits:**
-- Faster code reloading
-- Direct access to logs and debugging
-- Easier testing and iteration
+**Преимущества:**
+- Более быстрая перезагрузка кода
+- Прямой доступ к журналам и отладке
+- Упрощённое тестирование и итерация
 
 > [!TIP]
-> When running the backend with `make backend`, you can access the interactive API documentation at http://localhost:8000/docs.
+> При запуске бэкенда с помощью `make backend` вы можете получить доступ к интерактивной документации API по адресу http://localhost:8000/docs.
 
-### C) Branch Development (Custom Langflow)
+### C) Разработка веток (пользовательский Langflow)
 
-If you need to test a Langflow change that hasn't shipped yet — your own fork/branch, or an upstream feature branch — use `dev-branch` instead of `dev`/`dev-cpu`. Instead of pulling the published Langflow image, it clones `REPO` at `BRANCH` and builds the Langflow image from source, then starts the rest of the stack normally:
+Если вам нужно проверить изменение Langflow, которое ещё не выпущено, — собственный форк/ветку или ветку функции из апстрима — используйте `dev-branch` вместо `dev`/`dev-cpu`. Вместо подтягивания опубликованного образа Langflow он клонирует `REPO` по адресу `BRANCH` и собирает образ Langflow из исходников, а затем запускает остальной стек обычным образом:
 
 ```bash
-# Full stack with custom branch
+# Полный стек с пользовательской веткой
 make dev-branch BRANCH=my-feature-branch
 
-# Or CPU-only full stack
+# Или полный стек только с CPU
 make dev-branch-cpu BRANCH=my-feature-branch
 
-# Local development infrastructure (OpenSearch + custom Langflow container, backend/frontend on host)
+# Инфраструктура локальной разработки (OpenSearch + пользовательский контейнер Langflow, бэкенд/фронтенд на хосте)
 make dev-branch-local BRANCH=my-feature-branch
 
-# Or CPU-only local development infrastructure
+# Или инфраструктура локальной разработки только с CPU
 make dev-branch-local-cpu BRANCH=my-feature-branch
 
-# Use a different repository
+# Используйте другой репозиторий
 make dev-branch BRANCH=feature-x REPO=https://github.com/myorg/langflow.git
 ```
 
 > [!NOTE]
-> The first build may take several minutes as it compiles Langflow from source.
+> Первая сборка может занять несколько минут, так как компилирует Langflow из исходников.
 
-**Additional branch commands:**
+**Дополнительные команды для веток:**
 ```bash
-make build-langflow-dev  # Rebuild Langflow image (no cache)
-make stop-dev            # Stop branch dev containers
-make restart-dev         # Restart branch dev environment
-make clean-dev           # Clean branch dev containers and volumes
-make logs-lf-dev         # View Langflow dev logs
-make shell-lf-dev        # Shell into Langflow dev container
+make build-langflow-dev  # Пересобрать образ Langflow (без кэша)
+make stop-dev            # Остановить контейнеры ветки разработки
+make restart-dev         # Перезапустить среду разработки ветки
+make clean-dev           # Очистить контейнеры и тома ветки разработки
+make logs-lf-dev         # Просмотреть журналы разработки Langflow
+make shell-lf-dev        # Войти в контейнер разработки Langflow
 ```
 
-### D) Docling Service (Document Processing)
+### D) Сервис Docling (обработка документов)
 
-Docling handles document parsing and OCR:
+Docling обрабатывает разбор документов и OCR:
 
 ```bash
-make docling       # Start docling-serve
-make docling-stop  # Stop docling-serve
+make docling       # Запустить docling-serve
+make docling-stop  # Остановить docling-serve
 ```
 
 ---
 
-## Frequently Used `make` Commands
+## Часто используемые команды `make`
 
-A quick-reference cheat sheet of the commands you'll reach for most while contributing. Run `make help` at any time for the full, color-coded list.
+Краткая шпаргалка по командам, к которым вы будете обращаться чаще всего при внесении вклада. В любой момент запустите `make help`, чтобы увидеть полный список с цветовой кодировкой.
 
-| Command | What it does |
+| Команда | Что делает |
 |---|---|
-| `make check_tools` | Verify Docker/Podman/Colima, Python, uv, Node.js, and npm are installed and meet version requirements. |
-| `make setup` | Install backend + frontend dependencies and scaffold `.env` from `.env.example`. Run once, and again after pulling changes that touch dependencies. |
-| `make dev` / `make dev-cpu` | Start the **full stack** in containers (GPU or CPU). Simplest option, best for just trying OpenRAG out — not ideal for iterating on code. |
-| `make dev-local-cpu` | Start **infra only** (OpenSearch, Dashboards, Langflow) in containers, with the backend/frontend run on the host. This is the recommended loop for active development — see [Local Development](#b-local-development-recommended-for-development). |
-| `make backend` | Run the FastAPI backend on the host (`uv run python src/main.py`), hot-reloading on code changes. Requires infra started via `make dev-local-cpu` first. |
-| `make frontend` | Run the Next.js frontend on the host (`npx next dev`), hot-reloading on code changes. |
-| `make docling` / `make docling-stop` | Start/stop the Docling service used for document parsing and OCR. |
-| `make dev-branch BRANCH=<name>` | Build and run the full stack with a custom Langflow branch instead of the published image — see [Branch Development](#c-branch-development-custom-langflow). |
-| `make stop` | Stop and remove all OpenRAG containers. |
-| `make clean` | Stop containers and delete volumes (data is wiped). |
-| `make factory-reset` | Full reset — containers, volumes, and on-disk data. Use when you want a completely clean slate. |
-| `make logs` / `make logs-be` / `make logs-fe` / `make logs-lf` | Tail logs for all services, or just backend/frontend/Langflow. |
-| `make status` / `make health` | Check container status / service health. |
-| `make test` | Run the backend test suite. |
-| `make lint` | Run linting checks. |
-| `make help` | Show the full command reference, grouped by category (`make help_dev`, `make help_docker`, `make help_test`, `make help_local`, `make help_utils`). |
+| `make check_tools` | Проверяет, что Docker/Podman/Colima, Python, uv, Node.js и npm установлены и соответствуют требованиям к версиям. |
+| `make setup` | Устанавливает зависимости бэкенда и фронтенда и создаёт `.env` из `.env.example`. Запускайте один раз и повторно после подтягивания изменений, затрагивающих зависимости. |
+| `make dev` / `make dev-cpu` | Запускает **полный стек** в контейнерах (GPU или CPU). Самый простой вариант, лучше всего подходит для простого опробования OpenRAG — не идеален для итерации по коду. |
+| `make dev-local-cpu` | Запускает **только инфраструктуру** (OpenSearch, Dashboards, Langflow) в контейнерах, а бэкенд/фронтенд — на хосте. Это рекомендуемый цикл для активной разработки — см. [Локальная разработка](#b-local-development-recommended-for-development). |
+| `make backend` | Запускает бэкенд FastAPI на хосте (`uv run python src/main.py`) с горячей перезагрузкой при изменении кода. Требует предварительного запуска инфраструктуры через `make dev-local-cpu`. |
+| `make frontend` | Запускает фронтенд Next.js на хосте (`npx next dev`) с горячей перезагрузкой при изменении кода. |
+| `make docling` / `make docling-stop` | Запуск/остановка сервиса Docling, используемого для разбора документов и OCR. |
+| `make dev-branch BRANCH=<имя>` | Сборка и запуск полного стека с пользовательской веткой Langflow вместо опубликованного образа — см. [Разработка веток](#c-branch-development-custom-langflow). |
+| `make stop` | Останавливает и удаляет все контейнеры OpenRAG. |
+| `make clean` | Останавливает контейнеры и удаляет тома (данные стираются). |
+| `make factory-reset` | Полный сброс — контейнеры, тома и данные на диске. Используйте, когда нужна полностью чистая среда. |
+| `make logs` / `make logs-be` / `make logs-fe` / `make logs-lf` | Просмотр журналов всех сервисов или только бэкенда/фронтенда/Langflow. |
+| `make status` / `make health` | Проверка состояния контейнеров / работоспособности сервисов. |
+| `make test` | Запуск набора тестов бэкенда. |
+| `make lint` | Запуск проверок линтера. |
+| `make help` | Показывает полный справочник команд, сгруппированных по категориям (`make help_dev`, `make help_docker`, `make help_test`, `make help_local`, `make help_utils`). |
 
 ---
 
-## Service Management
+## Управление сервисами
 
-### Stop All Services
+### Остановка всех сервисов
 
 ```bash
-make stop  # Stops and removes all OpenRAG containers
+make stop  # Останавливает и удаляет все контейнеры OpenRAG
 ```
 
-### Check Status
+### Проверка состояния
 
 ```bash
-make status  # Show container status
-make health  # Check health of all services
+make status  # Показать состояние контейнеров
+make health  # Проверить работоспособность всех сервисов
 ```
 
-### View Logs
+### Просмотр журналов
 
 ```bash
-make logs     # All container logs
-make logs-be  # Backend logs only
-make logs-fe  # Frontend logs only
-make logs-lf  # Langflow logs only
-make logs-os  # OpenSearch logs only
+make logs     # Журналы всех контейнеров
+make logs-be  # Только журналы бэкенда
+make logs-fe  # Только журналы фронтенда
+make logs-lf  # Только журналы Langflow
+make logs-os  # Только журналы OpenSearch
 ```
 
-### Shell Access
+### Доступ к оболочке
 
 ```bash
-make shell-be  # Shell into backend container
-make shell-lf  # Shell into Langflow container
-make shell-os  # Shell into OpenSearch container
+make shell-be  # Войти в контейнер бэкенда
+make shell-lf  # Войти в контейнер Langflow
+make shell-os  # Войти в контейнер OpenSearch
 ```
 
 ---
 
-## Reset & Cleanup
+## Сброс и очистка
 
-### Stop and Clean Containers
-
-```bash
-make stop   # Stop and remove containers
-make clean  # Stop, remove containers, and delete volumes
-```
-
-### Reset Database
+### Остановка и очистка контейнеров
 
 ```bash
-make db-reset       # Reset OpenSearch indices (keeps data directory)
-make clear-os-data  # Clear OpenSearch data directory completely
+make stop   # Остановить и удалить контейнеры
+make clean  # Остановить, удалить контейнеры и удалить тома
 ```
 
-### Full Factory Reset
+### Сброс базы данных
+
+```bash
+make db-reset       # Сбросить индексы OpenSearch (сохраняет каталог данных)
+make clear-os-data  # Полностью очистить каталог данных OpenSearch
+```
+
+### Полный заводской сброс
 
 > [!CAUTION]
-> This will delete all data, containers, and volumes. Use only when you need a completely fresh start.
+> Это удалит все данные, контейнеры и тома. Используйте только тогда, когда вам нужен полностью чистый старт.
 
 ```bash
-make factory-reset  # Complete reset: containers, volumes, and data
+make factory-reset  # Полный сброс: контейнеры, тома и данные
 ```
 
-The reset also removes any legacy `opensearch-data` directory, so old OpenSearch index files do not linger after cleanup.
+Сброс также удаляет любые устаревшие каталоги `opensearch-data`, чтобы старые файлы индексов OpenSearch не оставались после очистки.
 
 ---
 
-## Makefile Help System
+## Система справки Makefile
 
 > [!TIP]
-> The Makefile provides color-coded, organized help for all commands. Run `make help` to get started!
+> Makefile предоставляет справку с цветовой кодировкой и организацией по категориям для всех команд. Запустите `make help`, чтобы начать!
 
 ```bash
-make help         # Main help with common commands
-make help_dev     # Development environment commands
-make help_docker  # Docker and container commands
-make help_test    # Testing commands
-make help_local   # Local development commands
-make help_utils   # Utility commands (logs, cleanup, etc.)
+make help         # Основная справка с общими командами
+make help_dev     # Команды среды разработки
+make help_docker  # Команды Docker и контейнеров
+make help_test    # Команды тестирования
+make help_local   # Команды локальной разработки
+make help_utils   # Команды утилит (журналы, очистка и т. д.)
 ```
 
 ---
 
-## Testing
+## Тестирование
 
-### Run Tests
+### Запуск тестов
 
 ```bash
-make test              # Run all backend tests
-make test-integration  # Run integration tests (requires infra)
-make test-sdk          # Run SDK tests (requires running OpenRAG)
-make lint              # Run linting checks
+make test              # Запуск всех тестов бэкенда
+make test-integration  # Запуск интеграционных тестов (требуется инфраструктура)
+make test-sdk          # Запуск тестов SDK (требуется запущенный OpenRAG)
+make lint              # Запуск проверок линтера
 ```
 
-### CI Tests
+### Тесты CI
 
 ```bash
-make test-ci        # Full CI: start infra, run tests, tear down
-make test-ci-local  # Same as above, but builds images locally
+make test-ci        # Полный CI: запустить инфраструктуру, прогнать тесты, разобрать
+make test-ci-local  # То же, что выше, но образы собираются локально
 ```
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```
 openrag/
-├── src/                    # Backend Python code
-│   ├── api/               # REST API endpoints
-│   ├── services/          # Business logic
-│   ├── models/            # Data models
-│   ├── connectors/        # External integrations
-│   └── config/            # Configuration
-├── frontend/              # Next.js frontend
-│   ├── app/              # App router pages
-│   ├── components/       # React components
-│   └── contexts/         # State management
-├── flows/                 # Langflow flow definitions
-├── docs/                  # Documentation
-├── tests/                 # Test files
-├── Makefile              # Development commands
-└── docker-compose.yml    # Container orchestration
+├── src/                    # Код бэкенда на Python
+│   ├── api/               # Конечные точки REST API
+│   ├── services/          # Бизнес-логика
+│   ├── models/            # Модели данных
+│   ├── connectors/        # Внешние интеграции
+│   └── config/            # Конфигурация
+├── frontend/              # Фронтенд Next.js
+│   ├── app/              # Страницы App Router
+│   ├── components/       # Компоненты React
+│   └── contexts/         # Управление состоянием
+├── flows/                 # Определения процессов Langflow
+├── docs/                  # Документация
+├── tests/                 # Файлы тестов
+├── Makefile              # Команды разработки
+└── docker-compose.yml    # Оркестрация контейнеров
 ```
 
 ---
 
-## Troubleshooting
+## Устранение неполадок
 
-### Port Conflicts
+### Конфликты портов
 
 > [!NOTE]
-> Ensure these ports are available before starting OpenRAG:
+> Убедитесь, что эти порты свободны перед запуском OpenRAG:
 
-| Port | Service |
+| Порт | Сервис |
 |------|---------|
-| 3000 | Frontend |
+| 3000 | Фронтенд |
 | 7860 | Langflow |
-| 8000 | Backend |
+| 8000 | Бэкенд |
 | 9200 | OpenSearch |
 | 5601 | OpenSearch Dashboards |
 
-### Memory Issues
+### Проблемы с памятью
 
-If containers crash or are slow:
+Если контейнеры падают или работают медленно:
 
 ```bash
-# For Colima, stop and restart with more resources
+# Для Colima остановите и перезапустите с большими ресурсами
 colima stop
 colima start --cpu 8 --memory 16 --vm-type vz --vz-rosetta --mount-type virtiofs --ssh-port 2222 --port-forwarder grpc
 
-# For Podman on macOS, increase VM memory
+# Для Podman на macOS увеличьте память виртуальной машины
 podman machine stop
 podman machine rm
 podman machine init --memory 8192 --cpus 4
 podman machine start
 ```
 
-### Environment Reset
+### Сброс окружения
 
 > [!TIP]
-> If things aren't working, try a full reset:
+> Если что-то не работает, попробуйте полный сброс:
 
 ```bash
 make stop
 make clean
-cp .env.example .env  # Reconfigure as needed
+cp .env.example .env  # Перенастройте по мере необходимости
 make setup
 make dev
 ```
 
-### Check Service Health
+### Проверка работоспособности сервисов
 
 ```bash
 make health
 ```
 
-### Need More Help?
+### Нужна дополнительная помощь?
 
-- Run `make help` to see all available commands
-- Check existing [issues](https://github.com/langflow-ai/openrag/issues)
-- Review [documentation](docs/)
-- Use `make status` and `make health` for debugging
-- View logs with `make logs`
-
----
-
-## Code Style
-
-### Backend (Python)
-- Follow PEP 8 style guidelines
-- Use type hints
-- Document with docstrings
-- Use `structlog` for logging
-
-### Frontend (TypeScript/React)
-- Follow React/Next.js best practices
-- Use TypeScript for type safety
-- Use Tailwind CSS for styling
-- Follow established component patterns
+- Запустите `make help`, чтобы увидеть все доступные команды
+- Проверьте существующие [issues](https://github.com/langflow-ai/openrag/issues)
+- Просмотрите [документацию](docs/)
+- Используйте `make status` и `make health` для отладки
+- Просмотрите журналы с помощью `make logs`
 
 ---
 
-## Create a Pull Request
+## Стиль кода
 
-If you want to propose your changes to the OpenRAG maintainers, make sure your code is fully tested and ready for review:
+### Бэкенд (Python)
+- Следуйте рекомендациям стиля PEP 8
+- Используйте подсказки типов (type hints)
+- Документируйте с помощью docstring
+- Используйте `structlog` для логирования
 
-1. **Fork and Branch**: Create a feature branch from `main`
-2. **Test**: Ensure tests pass with `make test` and `make lint`
-3. **Document**: Update relevant documentation.
-To build and test documentation changes, see [Contribute OpenRAG documentation](https://docs.openr.ag/support/contribute#contribute-documentation).
-4. **Commit**: Use clear, descriptive commit messages
-5. **PR Description**: Explain changes and include testing instructions
+### Фронтенд (TypeScript/React)
+- Следуйте лучшим практикам React/Next.js
+- Используйте TypeScript для типобезопасности
+- Используйте Tailwind CSS для стилизации
+- Следуйте установленным паттернам компонентов
+
+---
+
+## Создание pull request
+
+Если вы хотите предложить свои изменения сопровождающим OpenRAG, убедитесь, что ваш код полностью протестирован и готов к ревью:
+
+1. **Форк и ветка**: Создайте ветку функции от `main`
+2. **Тест**: Убедитесь, что тесты проходят с помощью `make test` и `make lint`
+3. **Документация**: Обновите соответствующую документацию.
+Чтобы собрать и проверить изменения документации, см. [Вклад в документацию OpenRAG](https://docs.openr.ag/support/contribute#contribute-documentation).
+4. **Коммит**: Используйте понятные, описательные сообщения коммитов
+5. **Описание PR**: Объясните изменения и включите инструкции по тестированию
 
 > [!IMPORTANT]
-> All PRs must pass CI tests before merging.
+> Все PR должны пройти тесты CI перед объединением.
 
-For more information and suggestions for successful contributions, see [Contribute to OpenRAG](https://docs.openr.ag/support/contribute#contribute-to-the-codebase).
+Дополнительные сведения и рекомендации по успешному вкладу см. в разделе [Вклад в OpenRAG](https://docs.openr.ag/support/contribute#contribute-to-the-codebase).
 
 
-Thank you for contributing to OpenRAG! 🚀
+Спасибо за вклад в OpenRAG! 🚀

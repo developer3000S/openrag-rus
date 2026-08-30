@@ -1,20 +1,20 @@
-# Environment Variable Override System
+# Система переопределения переменных окружения
 
-The OpenRAG operator implements a three-level environment variable override system that allows fine-grained control over environment variables for Langflow, Backend, and Frontend components.
+Оператор OpenRAG реализует трехуровневую систему переопределения переменных окружения, которая позволяет тонко управлять переменными окружения для компонентов Langflow, Backend и Frontend.
 
-## Three-Level Priority System
+## Трехуровневая система приоритетов
 
-Environment variables are merged using the following priority (highest to lowest):
+Переменные окружения объединяются в соответствии со следующим приоритетом (от высшего к низшему):
 
-1. **CR Spec Env Vars** (Highest Priority) - Defined in the `OpenRAG` custom resource
-2. **Operator Environment** (Medium Priority) - Set in the operator's deployment with component-specific prefixes
-3. **Hardcoded Defaults** (Lowest Priority) - Built into the operator code
+1. **Переменные окружения в спецификации CR** (наивысший приоритет) - Определены в пользовательском ресурсе `OpenRAG`
+2. **Окружение оператора** (средний приоритет) - Задано в развёртывании оператора с префиксами, специфичными для компонентов
+3. **Жёстко заданные значения по умолчанию** (низший приоритет) - Встроены в код оператора
 
-### Visual Representation
+### Визуальное представление
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Priority Level 3 (Highest): CR Spec                        │
+│ Приоритет 3 (наивысший): спецификация CR                   │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ spec:                                                   │ │
 │ │   langflow:                                            │ │
@@ -23,11 +23,11 @@ Environment variables are merged using the following priority (highest to lowest
 │ │         value: "ERROR"                                 │ │
 │ └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
-                            ↓ overrides
+                            ↓ переопределяет
 ┌─────────────────────────────────────────────────────────────┐
-│ Priority Level 2 (Medium): Operator Environment            │
+│ Приоритет 2 (средний): окружение оператора                 │
 │ ┌─────────────────────────────────────────────────────────┐ │
-│ │ Operator Deployment:                                   │ │
+│ │ Развёртывание оператора:                               │ │
 │ │   env:                                                 │ │
 │ │     - name: OPTLF_LANGFLOW_LOG_LEVEL                  │ │
 │ │       value: "INFO"                                    │ │
@@ -35,9 +35,9 @@ Environment variables are merged using the following priority (highest to lowest
 │ │       value: "8"                                       │ │
 │ └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
-                            ↓ overrides
+                            ↓ переопределяет
 ┌─────────────────────────────────────────────────────────────┐
-│ Priority Level 1 (Lowest): Hardcoded Defaults              │
+│ Приоритет 1 (низший): жёстко заданные значения по умолчанию│
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ env.go DefaultLangflowEnvVars:                        │ │
 │ │   "LANGFLOW_LOG_LEVEL": "DEBUG"                       │ │
@@ -47,24 +47,24 @@ Environment variables are merged using the following priority (highest to lowest
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Result
+### Результат
 
-In the example above, the final merged environment would be:
-- `LANGFLOW_LOG_LEVEL=ERROR` (from CR spec - highest priority)
-- `LANGFLOW_WORKERS=8` (from operator env - medium priority)
-- `LANGFLOW_AUTO_LOGIN=true` (from defaults - lowest priority)
+В приведённом выше примере итоговое объединённое окружение будет следующим:
+- `LANGFLOW_LOG_LEVEL=ERROR` (из спецификации CR — наивысший приоритет)
+- `LANGFLOW_WORKERS=8` (из окружения оператора — средний приоритет)
+- `LANGFLOW_AUTO_LOGIN=true` (из значений по умолчанию — низший приоритет)
 
-## Component-Specific Prefixes
+## Префиксы, специфичные для компонентов
 
-Each component has its own prefix for operator-level environment variables:
+Каждый компонент имеет собственный префикс для переменных окружения уровня оператора:
 
-| Component | Prefix | Example |
+| Компонент | Префикс | Пример |
 |-----------|--------|---------|
 | Langflow | `OPTLF_` | `OPTLF_LANGFLOW_WORKERS=8` |
 | Backend | `OPTORBE_` | `OPTORBE_LOG_LEVEL=INFO` |
 | Frontend | `OPTORFE_` | `OPTORFE_PORT=3000` |
 
-This allows you to set different values for the same environment variable across components:
+Это позволяет задавать разные значения для одной и той же переменной окружения в разных компонентах:
 
 ```yaml
 apiVersion: apps/v1
@@ -85,9 +85,9 @@ spec:
           value: "2"
 ```
 
-## Usage Examples
+## Примеры использования
 
-### Example 1: Override with CR Spec
+### Пример 1: переопределение с помощью спецификации CR
 
 ```yaml
 apiVersion: openr.ag/v1alpha1
@@ -103,9 +103,9 @@ spec:
       value: "16"
 ```
 
-### Example 2: Override with Operator Environment
+### Пример 2: переопределение с помощью окружения оператора
 
-Deploy the operator with custom defaults:
+Разверните оператор с собственными значениями по умолчанию:
 
 ```yaml
 apiVersion: apps/v1
@@ -118,29 +118,29 @@ spec:
       containers:
       - name: manager
         env:
-        # Langflow overrides
+        # Переопределения Langflow
         - name: OPTLF_LANGFLOW_WORKERS
           value: "8"
         - name: OPTLF_LANGFLOW_LOG_LEVEL
           value: "INFO"
 
-        # Backend overrides
+        # Переопределения Backend
         - name: OPTORBE_LOG_LEVEL
           value: "DEBUG"
         - name: OPTORBE_MAX_WORKERS
           value: "6"
 ```
 
-### Example 3: Use All Three Levels
+### Пример 3: использование всех трёх уровней
 
 ```yaml
-# Operator deployment with medium-priority defaults
+# Развёртывание оператора со значениями по умолчанию среднего приоритета
 env:
 - name: OPTLF_LANGFLOW_WORKERS
   value: "8"
 
 ---
-# OpenRAG CR with high-priority overrides
+# CR OpenRAG с переопределениями высокого приоритета
 apiVersion: openr.ag/v1alpha1
 kind: OpenRAG
 metadata:
@@ -152,12 +152,12 @@ spec:
       value: "ERROR"
 ```
 
-**Result:**
-- `LANGFLOW_WORKERS=8` (from operator env, overrides default "4")
-- `LANGFLOW_LOG_LEVEL=ERROR` (from CR, overrides operator env if set)
-- `LANGFLOW_AUTO_LOGIN=true` (from hardcoded defaults)
+**Результат:**
+- `LANGFLOW_WORKERS=8` (из окружения оператора, переопределяет значение по умолчанию "4")
+- `LANGFLOW_LOG_LEVEL=ERROR` (из CR, переопределяет окружение оператора, если задано)
+- `LANGFLOW_AUTO_LOGIN=true` (из жёстко заданных значений по умолчанию)
 
-## API Reference
+## Справочник API
 
 ### EnvVarManager
 
@@ -170,7 +170,7 @@ type EnvVarManager struct {
 }
 ```
 
-### Methods
+### Методы
 
 #### GetLangflowEnvVars
 
@@ -178,7 +178,7 @@ type EnvVarManager struct {
 func (m *EnvVarManager) GetLangflowEnvVars(crEnvVars []corev1.EnvVar) map[string]string
 ```
 
-Returns merged Langflow environment variables with three-level priority applied.
+Возвращает объединённые переменные окружения Langflow с применением трехуровневого приоритета.
 
 #### GetBackendEnvVars
 
@@ -186,7 +186,7 @@ Returns merged Langflow environment variables with three-level priority applied.
 func (m *EnvVarManager) GetBackendEnvVars(crEnvVars []corev1.EnvVar) map[string]string
 ```
 
-Returns merged Backend environment variables with three-level priority applied.
+Возвращает объединённые переменные окружения Backend с применением трехуровневого приоритета.
 
 #### GetFrontendEnvVars
 
@@ -194,7 +194,7 @@ Returns merged Backend environment variables with three-level priority applied.
 func (m *EnvVarManager) GetFrontendEnvVars(crEnvVars []corev1.EnvVar) map[string]string
 ```
 
-Returns merged Frontend environment variables with three-level priority applied.
+Возвращает объединённые переменные окружения Frontend с применением трехуровневого приоритета.
 
 #### BuildEnvFileContent
 
@@ -202,40 +202,40 @@ Returns merged Frontend environment variables with three-level priority applied.
 func (m *EnvVarManager) BuildEnvFileContent(envVars map[string]string) string
 ```
 
-Converts a map of environment variables to `.env` file format.
+Преобразует карту переменных окружения в формат файла `.env`.
 
-## Implementation Details
+## Детали реализации
 
-### Priority Merge Algorithm
+### Алгоритм слияния по приоритету
 
-1. **Start with defaults**: Copy all hardcoded defaults to result map
-2. **Apply operator env**: Iterate through operator's environment, find variables with the correct prefix, strip prefix, and override
-3. **Apply CR env**: Iterate through CR spec env vars, override with their values (only direct values, not `valueFrom`)
+1. **Начните со значений по умолчанию**: скопируйте все жёстко заданные значения по умолчанию в результирующую карту
+2. **Примените окружение оператора**: переберите окружение оператора, найдите переменные с правильным префиксом, удалите префикс и переопределите
+3. **Примените окружение CR**: переберите переменные окружения спецификации CR и переопределите их значениями (только прямые значения, не `valueFrom`)
 
-### Prefix Stripping
+### Удаление префикса
 
-When the operator environment contains `OPTLF_LANGFLOW_WORKERS=8`, the prefix `OPTLF_` is stripped, resulting in `LANGFLOW_WORKERS=8` in the final environment.
+Когда окружение оператора содержит `OPTLF_LANGFLOW_WORKERS=8`, префикс `OPTLF_` удаляется, что даёт `LANGFLOW_WORKERS=8` в итоговом окружении.
 
-### ValueFrom Support
+### Поддержка ValueFrom
 
-CR env vars using `valueFrom` are resolved by the operator **during reconcile** and merged into the `.env` file like any other value — they are not passed through to the pod spec:
+Переменные окружения CR, использующие `valueFrom`, разрешаются оператором **во время реконсиляции (reconcile)** и объединяются в файл `.env` как любое другое значение — они не передаются в спецификацию контейнера:
 
-| `valueFrom` source | Behaviour |
+| Источник `valueFrom` | Поведение |
 |---|---|
-| `secretKeyRef` | Read from the cluster and written into `.env`. Missing keys error unless `optional: true`. |
-| `configMapKeyRef` | Same. |
-| `fieldRef` | **Rejected** with an error — there is no pod yet at reconcile time. |
-| `resourceFieldRef` | **Rejected**, same reason. |
+| `secretKeyRef` | Считывается из кластера и записывается в `.env`. Для отсутствующих ключей выдаётся ошибка, если только `optional: true`. |
+| `configMapKeyRef` | То же самое. |
+| `fieldRef` | **Отклоняется** с ошибкой — во время реконсиляции контейнера ещё нет. |
+| `resourceFieldRef` | **Отклоняется** по той же причине. |
 
-Resolving secrets into the file rather than the container's `Env` is deliberate: it keeps credentials from showing up when someone runs `env` inside the pod.
+Разрешение секретов в файл, а не в контейнерное `Env` — это осознанное решение: оно предотвращает появление учётных данных, когда кто-то выполняет `env` внутри контейнера.
 
-### Downward API Exception: Instana
+### Исключение Downward API: Instana
 
-The backend container's `Env` is empty by design. One variable breaks that rule.
+Контейнерное `Env` бэкенда по замыслу пусто. Одна переменная нарушает это правило.
 
-Instana's Kubernetes topology is one agent per node behind a hostPort, so the tracer's agent address is the pod's **own node IP** — exactly the kind of value `fieldRef` exists for, and exactly what the table above cannot express. `InstanaAgentHostEnvVar` therefore injects `INSTANA_AGENT_HOST` onto the container via `fieldRef: status.hostIP`. This is safe to layer on top of `.env` because the backend's `bootstrap.py` calls `load_dotenv(override=False)`, so a real container env var wins over the file. A node IP is not a credential, so the rationale above is unaffected.
+Топология Kubernetes для Instana — один агент на узел за hostPort, поэтому адрес агента трассировщика — это IP **собственного узла** контейнера — ровно то значение, для которого существует `fieldRef`, и ровно то, что таблица выше выразить не может. Поэтому `InstanaAgentHostEnvVar` вводит `INSTANA_AGENT_HOST` на контейнер через `fieldRef: status.hostIP`. Это безопасно наслаивается поверх `.env`, потому что `bootstrap.py` бэкенда вызывает `load_dotenv(override=False)`, поэтому настоящая переменная окружения контейнера выигрывает у файла. IP узла не является учётным данным, поэтому приведённое выше обоснование не затрагивается.
 
-Enable it through the CR:
+Включите это через CR:
 
 ```yaml
 spec:
@@ -243,51 +243,52 @@ spec:
     env:
       - name: INSTANA_ENABLED
         value: "true"
-      # Optional. Omit rather than setting empty — the tracer tests these for
-      # presence, not truthiness, so "" means a blank service name and an
-      # "Unknown INSTANA_LOG_LEVEL" warning on every boot.
+      # Необязательно. Лучше опустить, чем задавать пустым — трассировщик
+      # проверяет их на наличие, а не на истинность, поэтому "" означает
+      # пустое имя сервиса и предупреждение "Unknown INSTANA_LOG_LEVEL"
+      # при каждой загрузке.
       - name: INSTANA_SERVICE_NAME
         value: "OpenRAG Backend"
       - name: INSTANA_ZONE
         value: "openrag-cpd"
 ```
 
-`INSTANA_AGENT_HOST` is injected automatically and should be left unset. Setting it explicitly suppresses the injection and pins the tracer to that address instead — use that only for a non-DaemonSet agent reached through a Service.
+`INSTANA_AGENT_HOST` вводится автоматически, и его следует оставлять незаданным. Явное задание подавляет ввод и фиксирует трассировщик на этом адресе — используйте это только для агента, не являющегося DaemonSet, доступного через Service.
 
-`INSTANA_TRACING_DISABLE=logging` and `INSTANA_STACK_TRACE=error` are defaulted for you, and unlike the presence-sensitive vars above they carry a real value rather than being omitted. They are performance guardrails against two costly tracer defaults: a span per in-trace `WARNING`/`ERROR` whose bookkeeping grows for the life of the process, and a full Python stack capture on every outbound HTTP, OpenSearch, and database call. Override them through `spec.env` like any other backend var — with `all` rather than `""` for the stack-trace level, which the tracer rejects. See [Performance guardrails](https://docs.openr.ag/reference/observability#performance-guardrails).
+`INSTANA_TRACING_DISABLE=logging` и `INSTANA_STACK_TRACE=error` задаются для вас по умолчанию, и, в отличие от чувствительных к наличию переменных выше, они несут реальное значение, а не опускаются. Это защитные ограничения производительности против двух затратных значений трассировщика по умолчанию: спана на каждый внутритрассовый `WARNING`/`ERROR`, чьё учётное отслеживание растёт в течение жизни процесса, и полного захвата стека Python при каждом исходящем вызове HTTP, OpenSearch и базы данных. Переопределите их через `spec.env`, как любую другую переменную бэкенда, — со значением `all` вместо `""` для уровня стека, которое трассировщик отвергает. См. [Защитные ограничения производительности](https://docs.openr.ag/reference/observability#performance-guardrails).
 
-`INSTANA_SECRETS` gets the same real-default treatment, for privacy rather than performance: the tracer's own default (`contains-ignore-case:key,pass,secret`) only redacts credential-shaped query-parameter names, so without it OpenRAG's search text (`q`, `search`, `filename` on `GET /v2/files/search` and file listing) is exported to your Instana tenant verbatim. Override it through `spec.env` like the two above.
+`INSTANA_SECRETS` получает такое же обращение с реальным значением по умолчанию, но ради приватности, а не производительности: собственное значение по умолчанию трассировщика (`contains-ignore-case:key,pass,secret`) редактирует только имена параметров запроса в форме учётных данных, поэтому без него текст поиска OpenRAG (`q`, `search`, `filename` в `GET /v2/files/search` и списке файлов) экспортируется в ваш тенант Instana дословно. Переопределите его через `spec.env`, как два вышеупомянутых.
 
-Both decisions — whether to inject, and whether an explicit host already exists — are made from the **resolved** backend environment (the map `GetBackendEnvVars` returns), not from the raw `spec.env`. So `INSTANA_ENABLED` and `INSTANA_AGENT_HOST` behave the same whether they are literals, `secretKeyRef`, or `configMapKeyRef`: the operator sees exactly the value the backend will read out of its `.env`. Reading the raw `spec.env` instead would let the two disagree — a Secret-backed `INSTANA_ENABLED=true` would boot the tracer with no agent host, and a Secret-backed explicit host would be silently overridden by the injected node IP.
+Оба решения — вводить ли и существует ли уже явный хост — принимаются на основе **разрешённого** окружения бэкенда (карты, возвращаемой `GetBackendEnvVars`), а не из необработанного `spec.env`. Поэтому `INSTANA_ENABLED` и `INSTANA_AGENT_HOST` ведут себя одинаково, независимо от того, являются ли они литералами, `secretKeyRef` или `configMapKeyRef`: оператор видит ровно то значение, которое бэкенд прочитает из своего `.env`. Чтение необработанного `spec.env` вместо этого позволило бы им расходиться — `INSTANA_ENABLED=true` на основе Secret загрузило бы трассировщик без адреса агента, а явный хост на основе Secret был бы молча переопределён введённым IP узла.
 
-The operator never deploys an agent. Install one separately with IBM's `instana-agent` chart or operator: it needs a privileged, host-PID DaemonSet, which is a cluster-admin concern.
+Оператор никогда не развёртывает агент. Установите его отдельно с помощью чарта или оператора `instana-agent` от IBM: ему нужен привилегированный DaemonSet с host-PID, что является вопросом уровня Cluster-admin.
 
-## Testing
+## Тестирование
 
-See `env_test.go` for comprehensive test coverage of:
-- Three-level priority override
-- Prefix filtering
-- CR env var override
-- Empty CR env vars
-- ValueFrom handling
-- Real-world scenarios
+См. `env_test.go` для полного покрытия тестами:
+- Трехуровневое переопределение приоритета
+- Фильтрация префиксов
+- Переопределение переменных окружения CR
+- Пустые переменные окружения CR
+- Обработка ValueFrom
+- Реальные сценарии
 
-See `instana_test.go` for the Downward API exception:
-- Default-off, and the truthiness values that enable it
-- `status.hostIP` injection, and explicit-host suppression
-- Operator-prefix precedence and `valueFrom` fallback
-- The guard against giving presence-sensitive vars empty defaults
+См. `instana_test.go` для исключения Downward API:
+- Выключено по умолчанию и значения истинности, которые его включают
+- Ввод `status.hostIP` и подавление явного хоста
+- Приоритет префиксов оператора и откат `valueFrom`
+- Защита от пустых значений по умолчанию для чувствительных к наличию переменных
 
-Run tests:
+Запуск тестов:
 ```bash
 go test -v ./internal/controller -run TestEnvVarManager
 go test -v ./internal/controller -run Instana
 ```
 
-## Best Practices
+## Рекомендации
 
-1. **Use CR spec for instance-specific overrides**: Each OpenRAG instance can have custom settings
-2. **Use operator env for organization-wide defaults**: Set in operator deployment for all instances
-3. **Modify hardcoded defaults sparingly**: Only change when updating the operator version
-4. **Use descriptive names**: Operator env vars include the component in the name (e.g., `OPTLF_LANGFLOW_WORKERS`)
-5. **Document overrides**: Use comments in your CRs and operator deployment to explain why overrides are needed
+1. **Используйте спецификацию CR для переопределений, специфичных для экземпляра**: каждый экземпляр OpenRAG может иметь собственные настройки
+2. **Используйте окружение оператора для значений по умолчанию на уровне организации**: задавайте их в развёртывании оператора для всех экземпляров
+3. **Изменяйте жёстко заданные значения по умолчанию экономно**: меняйте только при обновлении версии оператора
+4. **Используйте описательные имена**: переменные окружения оператора включают компонент в имени (например, `OPTLF_LANGFLOW_WORKERS`)
+5. **Документируйте переопределения**: используйте комментарии в CR и развёртывании оператора, чтобы объяснить, зачем нужны переопределения

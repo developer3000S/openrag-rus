@@ -1,78 +1,78 @@
-# OpenRAG Agent Plugins
+# Агентные плагины OpenRAG
 
-This directory contains agent **skills** that help users work with OpenRAG. A skill is a `SKILL.md` file (YAML frontmatter + markdown body) that an AI agent reads to know *when* and *how* to assist with a particular task.
+Этот каталог содержит агентные **навыки** (skills), которые помогают пользователям работать с OpenRAG. Навык — это файл `SKILL.md` (frontmatter на YAML + тело на markdown), который ИИ-агент читает, чтобы знать, *когда* и *как* помогать с конкретной задачей.
 
-The canonical content lives here; it is surfaced to agents through several distribution paths described below.
+Каноническое содержимое находится здесь; оно предоставляется агентам через несколько путей распространения, описанных ниже.
 
-## Layout
+## Структура
 
 ```
 openrag/
 ├── .claude-plugin/
-│   └── marketplace.json           # turns the repo into a Claude Code marketplace
+│   └── marketplace.json           # превращает репозиторий в marketplace Claude Code
 ├── plugins/
-│   ├── README.md                  # this file
-│   └── openrag/                   # one plugin, can grow to many
+│   ├── README.md                  # этот файл
+│   └── openrag/                   # один плагин, может вырасти до нескольких
 │       ├── .claude-plugin/
-│       │   └── plugin.json        # plugin manifest (name, version, repo)
+│       │   └── plugin.json        # манифест плагина (имя, версия, репозиторий)
 │       └── skills/
-│           ├── install/SKILL.md   # guided OpenRAG installation
-│           ├── sdk/SKILL.md       # OpenRAG SDK integration helper
-│           └── dev-stack/SKILL.md # local dev stack runner (infra + backend + frontend)
+│           ├── install/SKILL.md   # направляемая установка OpenRAG
+│           ├── sdk/SKILL.md       # помощник по интеграции SDK OpenRAG
+│           └── dev-stack/SKILL.md # запуск локального стека разработки (инфраструктура + бэкенд + фронтенд)
 ├── .claude/
-│   └── skills/                    # symlinks into plugins/openrag/skills
+│   └── skills/                    # симлинки в plugins/openrag/skills
 │       ├── install   -> ../../plugins/openrag/skills/install
 │       ├── sdk       -> ../../plugins/openrag/skills/sdk
 │       └── dev-stack -> ../../plugins/openrag/skills/dev-stack
-└── AGENTS.md                      # entry point for any agent working in the repo
+└── AGENTS.md                      # точка входа для любого агента, работающего в репозитории
 ```
 
-The skills under `plugins/openrag/skills/` are the single source of truth. Everything else (`.claude/skills/` symlinks, marketplace/plugin manifests, `AGENTS.md`) points at them, so edits in one place propagate everywhere.
+Навыки в `plugins/openrag/skills/` — единственный источник истины. Всё остальное (симлинки `.claude/skills/`, манифесты marketplace/плагина, `AGENTS.md`) указывает на них, поэтому изменения в одном месте распространяются повсюду.
 
-## How users consume the skills
+## Как пользователи используют навыки
 
-There are four ways to get these skills in front of an agent.
+Существует четыре способа предоставить эти навыки агенту.
 
-### 1. Clone this repo and use Claude Code
+### 1. Клонировать этот репозиторий и использовать Claude Code
 
-No install step. `.claude/skills/` symlinks into the plugin, so Claude Code auto-discovers `install`, `sdk`, and `dev-stack` when it starts in this directory. Invoke with `/install`, `/sdk`, or `/dev-stack`, or let Claude trigger them automatically based on the `description` fields.
+Без этапа установки. Симлинки `.claude/skills/` ведут в плагин, поэтому Claude Code автоматически находит `install`, `sdk` и `dev-stack` при запуске в этом каталоге. Вызывайте с помощью `/install`, `/sdk` или `/dev-stack` или позвольте Claude запускать их автоматически на основе полей `description`.
 
-### 2. Install into Claude Code globally (any project)
+### 2. Установить в Claude Code глобально (любой проект)
 
 ```
 /plugin marketplace add langflow-ai/openrag
 /plugin install openrag@openrag
 ```
 
-The first command registers this repo as a marketplace (reads `.claude-plugin/marketplace.json`). The second installs the `openrag` plugin defined in `plugins/openrag/.claude-plugin/plugin.json`. The skills then work in any directory, not just this repo.
+Первая команда регистрирует этот репозиторий как marketplace (читает `.claude-plugin/marketplace.json`). Вторая устанавливает плагин `openrag`, определённый в `plugins/openrag/.claude-plugin/plugin.json`. Навыки затем работают в любом каталоге, а не только в этом репозитории.
 
-### 3. Load from the Claude Agent SDK or other skill-aware runtimes
+### 3. Загрузить из Claude Agent SDK или других сред с поддержкой навыков
 
-Point your skill loader at `plugins/openrag/skills/`. Each subdirectory is one skill. The SKILL.md format is Anthropic's Agent Skills spec and is consumed by the Claude Agent SDK and compatible runtimes.
+Укажите вашему загрузчику навыков на `plugins/openrag/skills/`. Каждый подкаталог — это один навык. Формат SKILL.md — это спецификация Anthropic Agent Skills, и он используется Claude Agent SDK и совместимыми средами.
 
-### 4. Any other agent (generic)
+### 4. Любой другой агент (универсальный)
 
-Read `SKILL.md` directly. The frontmatter `description` tells the agent when the skill is relevant; the markdown body is the instruction set. `AGENTS.md` at the repo root lists the available skills and links to them.
+Читайте `SKILL.md` напрямую. Поле `description` во frontmatter сообщает агенту, когда навык актуален; тело на markdown — это набор инструкций. Файл `AGENTS.md` в корне репозитория перечисляет доступные навыки и ссылается на них.
 
-## Authoring new skills
+## Создание новых навыков
 
-When adding a skill:
+При добавлении навыка:
 
-1. Create `plugins/openrag/skills/<name>/SKILL.md` with frontmatter:
+1. Создайте `plugins/openrag/skills/<имя>/SKILL.md` с frontmatter:
    ```yaml
    ---
-   name: <name>
-   description: When the agent should invoke this skill (one sentence, specific).
+   name: <имя>
+   description: Когда агенту следует вызывать этот навык (одно предложение, конкретное).
    ---
    ```
-2. Add a symlink so Claude Code in this repo picks it up:
+2. Добавьте симлинк, чтобы Claude Code в этом репозитории его подхватил:
    ```
-   ln -s ../../plugins/openrag/skills/<name> .claude/skills/<name>
+   ln -s ../../plugins/openrag/skills/<имя> .claude/skills/<имя>
    ```
-3. List it in `AGENTS.md` so non-Claude agents can find it.
-4. Keep the body **agent-neutral**: no references to tools or features that only exist in one runtime (no `TodoWrite`, no specific slash-command assumptions, no hook-based automations). Describe actions in generic terms: read files, run commands, fetch URLs, ask the user.
-5. Put Claude-Code-specific configuration (permissions, hooks) in `plugin.json` or `.claude/`, not in `SKILL.md`.
+3. Укажите его в `AGENTS.md`, чтобы агенты, отличные от Claude, могли его найти.
+4. Держите тело навыка **нейтральным по отношению к агенту**: без ссылок на инструменты или возможности, которые существуют только в одной среде (без `TodoWrite`, без предположений о конкретных слэш-командах, без автоматизаций на основе хуков). Описывайте действия в общих терминах: читать файлы, запускать команды, получать URL, спрашивать пользователя.
+5. Помещайте специфичную для Claude Code конфигурацию (разрешения, хуки) в `plugin.json` или `.claude/`, а не в `SKILL.md`.
 
-## Versioning
+## Версионирование
 
-Bump `plugins/openrag/.claude-plugin/plugin.json`'s `version` field when the skill set changes materially. Marketplace users pin to specific versions.
+Повышайте значение поля `version` в `plugins/openrag/.claude-plugin/plugin.json`, когда набор навыков существенно меняется. Пользователи marketplace закрепляют конкретные версии.

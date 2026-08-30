@@ -1,54 +1,54 @@
-# Website
+# Веб-сайт
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Этот сайт создан с помощью [Docusaurus](https://docusaurus.io/), современного генератора статических сайтов.
 
-## Installation
+## Установка
 
 ```bash
 npm install
 ```
 
-## Local Development
+## Локальная разработка
 
 ```bash
 npm start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+Эта команда запускает локальный сервер разработки и открывает окно браузера. Большинство изменений отражаются в реальном времени без необходимости перезапуска сервера.
 
-## Build
+## Сборка
 
 ```bash
 npm run build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+Эта команда генерирует статический контент в каталог `build`, который можно разместить на любом сервисе хостинга статических файлов.
 
-## Deployment
+## Развёртывание
 
-Using SSH:
+С использованием SSH:
 
 ```bash
 USE_SSH=true npm run deploy
 ```
 
-Not using SSH:
+Без использования SSH:
 
 ```bash
-GIT_USER=<Your GitHub username> npm run deploy
+GIT_USER=<Ваше имя пользователя GitHub> npm run deploy
 ```
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Если вы используете GitHub Pages для хостинга, эта команда является удобным способом собрать сайт и опубликовать изменения в ветке `gh-pages`.
 
-## Update the OpenRAG documentation PDF
+## Обновление PDF-документации OpenRAG
 
-The documentation PDF at `openrag/openrag-documents/openrag-documentation.pdf` is used by the OpenRAG application, so keep it up to date.
+PDF-документация в `openrag/openrag-documents/openrag-documentation.pdf` используется приложением OpenRAG, поэтому держите её в актуальном состоянии.
 
-To update the PDF, do the following:
+Чтобы обновить PDF, выполните следующее:
 
-1. Remove elements from the `docs/*.mdx` files.
-Content in tabs, details, and summary elements is hidden from PDF builds and it must be included.
-To remove these items, give the following prompt or something similar to your IDE.
+1. Удалите элементы из файлов `docs/*.mdx`.
+Контент внутри элементов tabs, details и summary скрыт в PDF-сборках, и его необходимо включить.
+Чтобы удалить эти элементы, дайте вашей IDE приведённую ниже подсказку или нечто подобное.
 
    ```
    Flatten documentation for PDF: remove tabs and details elements
@@ -65,13 +65,13 @@ To remove these items, give the following prompt or something similar to your ID
    Apply this to all documentation files that contain tabs or details elements so the content is fully flat and visible for PDF generation.
    ```
 
-2. Check your `.mdx` files to confirm these elements are removed.
-Don't commit the changes.
+2. Проверьте свои файлы `.mdx`, чтобы убедиться, что эти элементы удалены.
+Не коммитьте изменения.
 
-3. From `openrag/docs`, run this command to build the site with the changes, and create a PDF at `openrag/openrag-documents`.
+3. Из каталога `openrag/docs` выполните следующую команду, чтобы собрать сайт с изменениями и создать PDF в `openrag/openrag-documents`.
 
    ```
    npm run build:pdf
    ```
 
-4. Check the PDF's content, then commit and create a pull request.
+4. Проверьте содержимое PDF, затем закоммитьте и создайте pull request.

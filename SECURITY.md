@@ -1,64 +1,64 @@
-# OpenRAG security policy and responsible disclosure
+# Политика безопасности OpenRAG и ответственное раскрытие уязвимостей
 
-## Security policy
+## Политика безопасности
 
-This security policy applies to all public projects under the langflow-ai organization on GitHub. We prioritize security and continuously work to safeguard our systems. However, vulnerabilities can still exist. If you identify a security issue, please report it to us so we can address it promptly.
+Эта политика безопасности применяется ко всем публичным проектам организации langflow-ai на GitHub. Мы уделяем первостепенное внимание безопасности и постоянно работаем над защитой наших систем. Тем не менее уязвимости всё ещё могут существовать. Если вы обнаружите проблему безопасности, сообщите нам об этом, чтобы мы могли оперативно её устранить.
 
-### Security and bug fix versions
+### Версии безопасности и исправлений ошибок
 
-- Fixes are released either as part of the next minor version (e.g., 1.3.0 → 1.4.0) or as an on-demand patch version (e.g., 1.3.0 → 1.3.1)
-- Security fixes are given priority and might be enough to cause a new version to be released
+- Исправления выпускаются либо в составе следующей минорной версии (например, 1.3.0 → 1.4.0), либо как патч-версия по запросу (например, 1.3.0 → 1.3.1)
+- Исправления безопасности имеют приоритет и могут стать причиной выпуска новой версии
 
-## Report a vulnerability
+## Сообщить об уязвимости
 
-We encourage responsible disclosure of security vulnerabilities. If you find or suspect a security issue, please discreetly report it to us so we can address it promptly:
+Мы поощряем ответственное раскрытие уязвимостей безопасности. Если вы обнаружили или подозреваете проблему безопасности, сообщите нам об этом конфиденциально, чтобы мы могли оперативно её устранить:
 
-### Submit a report
+### Отправка отчёта
 
-Go to the [OpenRAG Security page](https://github.com/langflow-ai/openrag/security), and then click **Report a vulnerability** to start a private conversation between you and the repository's maintainers.
+Перейдите на [страницу безопасности OpenRAG](https://github.com/langflow-ai/openrag/security) и нажмите **Report a vulnerability**, чтобы начать приватную переписку между вами и сопровождающими репозитория.
 
-Provide as many specific details as possible to help us reproduce and fix the issue quickly, including the following:
+Предоставьте как можно больше конкретных деталей, чтобы помочь нам быстро воспроизвести и устранить проблему, включая следующее:
 
-- Steps to reproduce the issue
-- Potential impact or concerns
-- Any suggested fixes
+- Шаги для воспроизведения проблемы
+- Возможное воздействие или опасения
+- Любые предложенные исправления
 
-Your report is kept confidential, and these details aren't shared without your consent.
+Ваш отчёт остаётся конфиденциальным, и эти детали не раскрываются без вашего согласия.
 
-### Response timeline
+### Сроки реагирования
 
-We will acknowledge your report within 5 business days.
+Мы подтвердим получение вашего отчёта в течение 5 рабочих дней.
 
-We will provide an estimated resolution timeline.
+Мы предоставим ориентировочные сроки устранения.
 
-We will keep you updated on our progress.
+Мы будем держать вас в курсе нашего прогресса.
 
-### Disclosure guidelines
+### Рекомендации по раскрытию
 
-- Don't publicly disclose vulnerabilities until we have assessed, resolved, and notified affected users.
-- If you plan to present your research (e.g., at a conference or in a blog), share a draft with us at least 30 days in advance for review.
-- Disclosures must not include the following:
-  - Data from any OpenRAG customer projects
-  - OpenRAG user/customer information
-  - Details about OpenRAG employees, contractors, or partners
+- Не раскрывайте уязвимости публично, пока мы не оценим их, не устраним и не уведомим затронутых пользователей.
+- Если вы планируете представить своё исследование (например, на конференции или в блоге), поделитесь с нами черновиком как минимум за 30 дней до публикации для рецензирования.
+- Раскрытие не должно включать следующее:
+  - Данные любых проектов клиентов OpenRAG
+  - Информацию о пользователях/клиентах OpenRAG
+  - Сведения о сотрудниках, подрядчиках или партнёрах OpenRAG
 
-We appreciate your efforts in helping us maintain a secure platform, and we look forward to working together to resolve any issues responsibly.
+Мы ценим ваши усилия по поддержанию нашей платформы в безопасности и рассчитываем на совместную работу по ответственному устранению любых проблем.
 
-## Known vulnerabilities
+## Известные уязвимости
 
-The following known vulnerabilities are for the OpenRAG codebase.
+Ниже перечислены известные уязвимости, относящиеся к кодовой базе OpenRAG.
 
-This list doesn't include vulnerabilities within OpenRAG dependencies like OpenSearch and Langflow.
-For Langflow vulnerabilities, see the [Langflow SECURITY.md](https://github.com/langflow-ai/langflow/blob/main/SECURITY.md).
+Этот список не включает уязвимости в зависимостях OpenRAG, таких как OpenSearch и Langflow.
+По вопросам уязвимостей Langflow см. [SECURITY.md Langflow](https://github.com/langflow-ai/langflow/blob/main/SECURITY.md).
 
-There are no known vulnerabilities exclusive to the OpenRAG application at this time.
+В настоящее время нет известных уязвимостей, уникальных для приложения OpenRAG.
 
-## Security configuration guidelines
+## Рекомендации по конфигурации безопасности
 
-### Start the Langflow server with authentication enabled
+### Запуск сервера Langflow с включённой аутентификацией
 
-It is recommended that you set a Langflow password (`LANGFLOW_SUPERUSER_PASSWORD`) so the Langflow server starts with authentication enabled and the `langflow superuser` command disabled.
+Рекомендуется задать пароль Langflow (`LANGFLOW_SUPERUSER_PASSWORD`), чтобы сервер Langflow запускался с включённой аутентификацией и отключённой командой `langflow superuser`.
 
-You can set this password when you install OpenRAG, or you can [edit the OpenRAG `.env` file and redeploy the OpenRAG containers](https://docs.openr.ag/reference/configuration#set-environment-variables).
+Вы можете задать этот пароль при установке OpenRAG или [отредактировать файл `.env` OpenRAG и повторно развернуть контейнеры OpenRAG](https://docs.openr.ag/reference/configuration#set-environment-variables).
 
-For more information, see [OpenRAG's Langflow settings reference](https://docs.openr.ag/reference/configuration#langflow-settings).
+Дополнительные сведения см. в [справочнике по настройкам Langflow в OpenRAG](https://docs.openr.ag/reference/configuration#langflow-settings).

@@ -1,13 +1,13 @@
-# Docusaurus versioning setup
+# Настройка версионирования Docusaurus
 
-Docs versioning is currently **DISABLED** but configured and ready to enable.
-The configuration is found in `docusaurus.config.js` with commented-out sections.
+Версионирование документации в настоящее время **ОТКЛЮЧЕНО**, но настроено и готово к включению.
+Конфигурация находится в `docusaurus.config.js`, в разделах, закомментированных.
 
-To enable versioning, do the following:
+Чтобы включить версионирование, выполните следующее:
 
-1. Open `docusaurus.config.js`
-2. Find the versioning configuration section (around line 57)
-3. Uncomment the versioning configuration:
+1. Откройте `docusaurus.config.js`
+2. Найдите раздел конфигурации версионирования (около строки 57)
+3. Раскомментируйте конфигурацию версионирования:
 
 ```javascript
 docs: {
@@ -23,25 +23,25 @@ docs: {
 },
 ```
 
-## Create docs versions
+## Создание версий документации
 
-See the [Docusaurus docs](https://docusaurus.io/docs/versioning) for more info.
+Подробнее см. в [документации Docusaurus](https://docusaurus.io/docs/versioning).
 
-1. Use the Docusaurus CLI command to create a version.
+1. Используйте команду CLI Docusaurus для создания версии.
 ```bash
 # Create version 1.0.0 from current docs
 npm run docusaurus docs:version 1.0.0
 ```
 
-This command will:
-- Copy the full `docs/` folder contents into `versioned_docs/version-1.0.0/`
-- Create a versioned sidebar file at `versioned_sidebars/version-1.0.0-sidebars.json`
-- Append the new version to `versions.json`
+Эта команда:
+- Скопирует всё содержимое каталога `docs/` в `versioned_docs/version-1.0.0/`
+- Создаст файл боковой панели с версиями в `versioned_sidebars/version-1.0.0-sidebars.json`
+- Добавит новую версию в `versions.json`
 
-2. After creating a version, update the Docusaurus configuration to include multiple versions.
-`lastVersion:'1.0.0'` makes the '1.0.0' release the `latest` version.
-`current` is the work-in-progress docset, accessible at `/docs/next`.
-To remove a version, remove it from `onlyIncludeVersions`.
+2. После создания версии обновите конфигурацию Docusaurus, чтобы включить несколько версий.
+`lastVersion:'1.0.0'` делает релиз '1.0.0' версией `latest`.
+`current` — это набор документов в процессе разработки, доступный по адресу `/docs/next`.
+Чтобы удалить версию, удалите её из `onlyIncludeVersions`.
 
 ```javascript
 docs: {
@@ -61,21 +61,21 @@ docs: {
 },
 ```
 
-3. Test the deployment locally.
+3. Проверьте развёртывание локально.
 
 ```bash
 npm run build
 npm run serve
 ```
 
-4. To add subsequent versions, repeat the process, first running the CLI command then updating `docusaurus.config.js`.
+4. Чтобы добавить последующие версии, повторите процесс: сначала выполните команду CLI, затем обновите `docusaurus.config.js`.
 
 ```bash
 # Create version 2.0.0 from current docs
 npm run docusaurus docs:version 2.0.0
 ```
 
-After creating a new version, update `docusaurus.config.js`.
+После создания новой версии обновите `docusaurus.config.js`.
 
 ```javascript
 docs: {
@@ -98,13 +98,13 @@ docs: {
 },
 ```
 
-## Disable versioning
+## Отключение версионирования
 
-1. Remove the `versions` configuration from `docusaurus.config.js`.
-2. Delete the `docs/versioned_docs/` and `docs/versioned_sidebars/` directories.
-3. Delete `docs/versions.json`.
+1. Удалите конфигурацию `versions` из `docusaurus.config.js`.
+2. Удалите каталоги `docs/versioned_docs/` и `docs/versioned_sidebars/`.
+3. Удалите `docs/versions.json`.
 
-## References
+## Ссылки
 
-- [Official Docusaurus Versioning Documentation](https://docusaurus.io/docs/versioning)
-- [Docusaurus Versioning Best Practices](https://docusaurus.io/docs/versioning#recommended-practices)
+- [Официальная документация по версионированию Docusaurus](https://docusaurus.io/docs/versioning)
+- [Рекомендации по версионированию Docusaurus](https://docusaurus.io/docs/versioning#recommended-practices)

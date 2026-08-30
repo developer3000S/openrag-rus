@@ -1,23 +1,23 @@
-# OpenRAG scripts
+# Скрипты OpenRAG
 
-## Bulk ingest (`openrag_bulk.py`)
+## Массовая загрузка (`openrag_bulk.py`)
 
-`openrag_bulk.py` is a standalone client for loading a directory or a set of
-files through OpenRAG's public ingestion API. It groups files into server tasks,
-keeps a bounded number of tasks in flight, polls them to completion, and writes
-an atomic `summary.json` record as the run progresses.
+`openrag_bulk.py` — автономный клиент для загрузки каталога или набора
+файлов через публичный API приёма OpenRAG. Он группирует файлы в серверные
+задачи, поддерживает ограниченное число задач в процессе выполнения, опрашивает их
+до завершения и по мере выполнения записывает атомарную запись `summary.json`.
 
-The command families are deliberately separate:
+Семейства команд намеренно разделены:
 
-- `bulk upload` loads user-supplied files or directories.
-- `bench arxiv` acquires a repeatable arXiv dataset, then delegates its upload
-  phase to the same bulk loader.
+- `bulk upload` загружает файлы или каталоги, предоставленные пользователем.
+- `bench arxiv` получает воспроизводимый набор данных arXiv, а затем делегирует свой этап
+  загрузки тому же массовому загрузчику.
 
-The script has inline `uv` dependency metadata and does not import the OpenRAG
-application or SDK, so it can also be copied and run outside this repository.
+Скрипт содержит встроенные метаданные зависимостей `uv` и не импортирует приложение
+OpenRAG или SDK, поэтому его также можно скопировать и запускать вне этого репозитория.
 
-Set the URL of the OpenRAG frontend and an API key with `knowledge:upload` and
-`knowledge:read:own` permissions:
+Задайте URL фронтенда OpenRAG и API-ключ с разрешениями `knowledge:upload` и
+`knowledge:read:own`:
 
 ```bash
 export OPENRAG_URL=http://localhost:3000
@@ -31,26 +31,26 @@ uv run scripts/openrag_bulk.py bulk upload ./documents \
   --max-submit 2
 ```
 
-`--batch-size` controls how many files are sent in each multipart request.
-`--max-inflight` bounds the number of submitted OpenRAG tasks, including tasks
-being uploaded or polled. `--max-submit` can impose a lower limit on concurrent
-multipart requests, which is useful when files are large.
+`--batch-size` определяет, сколько файлов отправляется в каждом multipart-запросе.
+`--max-inflight` ограничивает число отправленных задач OpenRAG, включая задачи,
+находящиеся на этапе загрузки или опроса. `--max-submit` может установить более низкий предел для одновременных
+multipart-запросов, что полезно, когда файлы большие.
 
-Useful upload options include:
+Полезные параметры загрузки включают:
 
-| Option | Purpose |
+| Параметр | Назначение |
 | --- | --- |
-| `--sort path\|size-asc\|size-desc` | Choose the order in which files are batched. |
-| `--include GLOB`, `--exclude GLOB` | Filter relative paths or filenames; repeat either option. |
-| `--no-recursive` | Only read files directly inside supplied directories. |
-| `--settings-json JSON_OR_@FILE` | Forward per-run knowledge ingest settings. |
-| `--tweaks-json JSON_OR_@FILE` | Forward Langflow ingest tweaks. |
-| `--no-replace-duplicates` | Preserve existing documents with duplicate filenames. |
-| `--task-timeout SECONDS` | Bound the wait for each submitted server task. |
-| `--runs-dir DIR`, `--output-dir DIR`, `--run-id ID` | Control local run records. |
+| `--sort path\|size-asc\|size-desc` | Выбирает порядок, в котором файлы группируются в пакеты. |
+| `--include GLOB`, `--exclude GLOB` | Фильтрует относительные пути или имена файлов; повторите любой из параметров. |
+| `--no-recursive` | Читать только файлы непосредственно внутри указанных каталогов. |
+| `--settings-json JSON_OR_@FILE` | Передаёт настройки приёма знаний для каждого запуска. |
+| `--tweaks-json JSON_OR_@FILE` | Передаёт настройки приёма Langflow (tweaks). |
+| `--no-replace-duplicates` | Сохраняет существующие документы с дублирующимися именами файлов. |
+| `--task-timeout SECONDS` | Ограничивает ожидание каждой отправленной серверной задачи. |
+| `--runs-dir DIR`, `--output-dir DIR`, `--run-id ID` | Управляют локальными записями о запусках. |
 
-When connecting directly to the backend rather than through the frontend proxy,
-select its route prefix explicitly:
+При подключении напрямую к бэкенду, а не через прокси фронтенда,
+выберите его префикс маршрута явно:
 
 ```bash
 uv run scripts/openrag_bulk.py bulk upload ./documents \
@@ -58,8 +58,8 @@ uv run scripts/openrag_bulk.py bulk upload ./documents \
   --api-prefix /v1
 ```
 
-Runs are stored under `~/.openrag/bulk/runs` by default. They can be inspected
-without a running server or an API key:
+Запуски по умолчанию сохраняются в `~/.openrag/bulk/runs`. Их можно просмотреть
+без работающего сервера или API-ключа:
 
 ```bash
 uv run scripts/openrag_bulk.py bulk list
@@ -67,17 +67,17 @@ uv run scripts/openrag_bulk.py bulk summary
 uv run scripts/openrag_bulk.py bulk summary --detail latest
 ```
 
-The upload command exits with status `0` when every batch completes, `1` when
-one or more batches/files fail, and `2` for invalid input or configuration.
+Команда загрузки завершается с кодом состояния `0`, когда каждый пакет завершается успешно, `1`, когда
+один или несколько пакетов/файлов завершаются с ошибкой, и `2` при недопустимых входных данных или конфигурации.
 
-### arXiv benchmark and PDF downloader
+### Бенчмарк arXiv и загрузчик PDF
 
-The same standalone client includes the arXiv benchmark from `openrag-lite`.
-It can stage PDFs without a server, or feed the staged PDFs directly into the
-bulk uploader above.
+Тот же автономный клиент включает бенчмарк arXiv из `openrag-lite`.
+Он может подготовить PDF-файлы без сервера или передать подготовленные PDF-файлы напрямую в
+приведённый выше массовый загрузчик.
 
-By default, the benchmark copies a requester-pays arXiv PDF tarball from S3,
-caches the tarball, extracts the selected PDFs, and uploads them to OpenRAG:
+По умолчанию бенчмарк копирует оплачиваемый запрашивающим (requester-pays) tarball PDF arXiv с S3,
+кэширует tarball, извлекает выбранные PDF-файлы и загружает их в OpenRAG:
 
 ```bash
 export OPENRAG_URL=http://localhost:3000
@@ -89,13 +89,13 @@ uv run scripts/openrag_bulk.py bench arxiv \
   --max-inflight 4
 ```
 
-The S3 path requires the AWS CLI and credentials that can read the
-requester-pays `s3://arxiv` bucket. Override `--s3-uri` to use another tarball;
-plain local paths and `file://` URLs are also supported.
+Путь S3 требует AWS CLI и учётные данные, которые могут читать
+оплачиваемый запрашивающим бакет `s3://arxiv`. Переопределите `--s3-uri`, чтобы использовать другой tarball;
+обычные локальные пути и URL `file://` также поддерживаются.
 
-To query arXiv's Atom API and download PDFs individually instead, select the
-Atom source. The client applies a three-second courtesy delay between arXiv
-requests by default:
+Чтобы вместо этого запросить Atom API arXiv и загрузить PDF-файлы по отдельности, выберите
+источник Atom. Клиент по умолчанию применяет трёхсекундную задержку вежливости между
+запросами arXiv:
 
 ```bash
 uv run scripts/openrag_bulk.py bench arxiv \
@@ -106,11 +106,11 @@ uv run scripts/openrag_bulk.py bench arxiv \
   --max-results 25
 ```
 
-`--query` accepts a raw arXiv search query and overrides the category/date
-query. `--start`, `--sort-by`, and `--sort-order` control source selection.
+`--query` принимает необработанный поисковый запрос arXiv и переопределяет запрос категории/даты.
+`--start`, `--sort-by` и `--sort-order` управляют выбором источника.
 
-Download and cache PDFs without connecting to OpenRAG by passing
-`--download-only`; no API key is required:
+Загружайте и кэшируйте PDF-файлы без подключения к OpenRAG, передав
+`--download-only`; API-ключ не требуется:
 
 ```bash
 uv run scripts/openrag_bulk.py bench arxiv \
@@ -120,12 +120,12 @@ uv run scripts/openrag_bulk.py bench arxiv \
   --download-only
 ```
 
-The PDF cache defaults to `~/.openrag/benchmarks/arxiv/pdfs`. Existing PDFs and
-S3 tarballs are reused by default. Atom download failures are remembered in
-`_failed_downloads.json`; pass `--retry-failed-downloads` to try them again, or
-`--no-skip-existing` to create fresh PDF files.
+Кэш PDF по умолчанию находится в `~/.openrag/benchmarks/arxiv/pdfs`. Существующие PDF-файлы и
+tarball S3 повторно используются по умолчанию. Сбои загрузки Atom запоминаются в
+`_failed_downloads.json`; передайте `--retry-failed-downloads`, чтобы повторить их, или
+`--no-skip-existing`, чтобы создать свежие PDF-файлы.
 
-Benchmark run records default to `~/.openrag/benchmarks/arxiv/runs`:
+Записи о запусках бенчмарка по умолчанию находятся в `~/.openrag/benchmarks/arxiv/runs`:
 
 ```bash
 uv run scripts/openrag_bulk.py bench arxiv list
@@ -133,25 +133,25 @@ uv run scripts/openrag_bulk.py bench arxiv summary
 uv run scripts/openrag_bulk.py bench arxiv summary --detail latest
 ```
 
-## Sync default user roles (`sync_default_user_roles.py`)
+## Синхронизация ролей пользователей по умолчанию (`sync_default_user_roles.py`)
 
-Dev-only helper for RBAC in **OSS run mode** (`OPENRAG_RUN_MODE=oss`): updates
-existing users in the SQL DB when `OPENRAG_DEFAULT_ROLE` changes. Requires:
+Вспомогательный скрипт только для разработки для RBAC в **режиме OSS** (`OPENRAG_RUN_MODE=oss`): обновляет
+существующих пользователей в SQL-базе данных, когда изменяется `OPENRAG_DEFAULT_ROLE`. Требуется:
 
 ```env
 OPENRAG_RUN_MODE=oss
 OPENRAG_SYNC_DEFAULT_ROLE=true
-OPENRAG_DEFAULT_ROLE=admin   # target role: admin | developer | user | viewer
+OPENRAG_DEFAULT_ROLE=admin   # целевая роль: admin | developer | user | viewer
 ```
 
-Ignored in `saas` and `on_prem` — those modes assign roles from JWT claims.
+Игнорируется в режимах `saas` и `on_prem` — эти режимы назначают роли из JWT-claims.
 
-Uses the default SQLite DB at `data/openrag.db` unless `DATABASE_URL` is set.
+Использует базу данных SQLite по умолчанию в `data/openrag.db`, если не задан `DATABASE_URL`.
 
-### Promote all `user` roles to `OPENRAG_DEFAULT_ROLE`
+### Повышение всех ролей `user` до `OPENRAG_DEFAULT_ROLE`
 
-Use this when users still have the `user` role but you want them on whatever
-role is set in `OPENRAG_DEFAULT_ROLE` (for example `admin`):
+Используйте это, когда у пользователей всё ещё есть роль `user`, но вы хотите назначить им ту роль,
+которая задана в `OPENRAG_DEFAULT_ROLE` (например, `admin`):
 
 ```bash
 OPENRAG_SYNC_DEFAULT_ROLE=true \
@@ -159,27 +159,27 @@ OPENRAG_DEFAULT_ROLE=admin \
 uv run python scripts/sync_default_user_roles.py --from-role user
 ```
 
-### Explicit from → to (ignores env target)
+### Явное «из → в» (игнорирует целевую переменную окружения)
 
-When both roles are on the CLI, the target comes from `--to-role`, not
-`OPENRAG_DEFAULT_ROLE`:
+Когда обе роли указаны в CLI, целевая роль берётся из `--to-role`, а не
+из `OPENRAG_DEFAULT_ROLE`:
 
 ```bash
 OPENRAG_SYNC_DEFAULT_ROLE=true \
 uv run python scripts/sync_default_user_roles.py --from-role admin --to-role user
 ```
 
-Migrates every user whose **only** role is `admin` to `user`, regardless of
-what `OPENRAG_DEFAULT_ROLE` is set to.
+Переносит каждого пользователя, чья **единственная** роль — `admin`, в роль `user`, независимо от
+того, что задано в `OPENRAG_DEFAULT_ROLE`.
 
-What it does:
+Что он делает:
 
-- Finds every user whose **only** role is `user`
-- Assigns them the role from `OPENRAG_DEFAULT_ROLE` (here: `admin`)
-- Skips users with multiple roles or a different single role
-- Updates the stored baseline in `workspace_config.meta`
+- Находит каждого пользователя, чья **единственная** роль — `user`
+- Назначает ему роль из `OPENRAG_DEFAULT_ROLE` (здесь: `admin`)
+- Пропускает пользователей с несколькими ролями или другой единственной ролью
+- Обновляет сохранённый базовый уровень в `workspace_config.meta`
 
-Preview without writing:
+Предварительный просмотр без записи:
 
 ```bash
 OPENRAG_SYNC_DEFAULT_ROLE=true \
@@ -187,66 +187,66 @@ OPENRAG_DEFAULT_ROLE=admin \
 uv run python scripts/sync_default_user_roles.py --from-role user --dry-run
 ```
 
-Replace `user` with any source role, and set `OPENRAG_DEFAULT_ROLE` to the
-target role you want.
+Замените `user` на любую исходную роль и задайте `OPENRAG_DEFAULT_ROLE` на целевую
+роль, которую вы хотите.
 
-### Other commands
+### Другие команды
 
-| Command | Purpose |
+| Команда | Назначение |
 | --- | --- |
-| `uv run python scripts/sync_default_user_roles.py` | Sync when env default changed since last recorded baseline |
-| `--dry-run` | Show changes without writing to the DB |
-| `--from-role ROLE` | Source role for this run (overrides stored baseline) |
-| `--to-role ROLE` | Target role (overrides `OPENRAG_DEFAULT_ROLE`; requires `--from-role`) |
-| `--from-noauth-role ROLE` | Source role for the anonymous user |
-| `--to-noauth-role ROLE` | Target role for anonymous user (overrides `OPENRAG_NOAUTH_ROLE`) |
-| `--record-baseline` | Save current env defaults; do not change any user |
+| `uv run python scripts/sync_default_user_roles.py` | Синхронизация, когда значение по умолчанию из окружения изменилось с момента последней записанной базовой линии |
+| `--dry-run` | Показать изменения без записи в БД |
+| `--from-role ROLE` | Исходная роль для этого запуска (переопределяет сохранённую базовую линию) |
+| `--to-role ROLE` | Целевая роль (переопределяет `OPENRAG_DEFAULT_ROLE`; требует `--from-role`) |
+| `--from-noauth-role ROLE` | Исходная роль для анонимного пользователя |
+| `--to-noauth-role ROLE` | Целевая роль для анонимного пользователя (переопределяет `OPENRAG_NOAUTH_ROLE`) |
+| `--record-baseline` | Сохранить текущие значения по умолчанию из окружения; не изменять ни одного пользователя |
 
-### After running
+### После выполнения
 
-Restart the backend (or wait for `OPENRAG_PERM_CACHE_TTL`, default 60s) so
-permission checks pick up the new roles. Verify with:
+Перезапустите бэкенд (или дождитесь `OPENRAG_PERM_CACHE_TTL`, по умолчанию 60 с), чтобы
+проверки разрешений подхватили новые роли. Проверьте с помощью:
 
 ```bash
 curl -b "auth_token=..." http://localhost:8000/users/me
 ```
 
-### Notes
+### Примечания
 
-- Intended for local OSS dev workflows, not production role management.
-- If the script reports stale users but updates none, use `--from-role` with
-  the role those users currently have.
+- Предназначен для локальных рабочих процессов разработки OSS, а не для управления ролями в производстве.
+- Если скрипт сообщает об устаревших пользователях, но не обновляет ни одного, используйте `--from-role` с
+  той ролью, которая есть у этих пользователей в настоящее время.
 
-## Reset onboarding (`reset_onboarding.py`)
+## Сброс онбординга (`reset_onboarding.py`)
 
-Re-triggers the onboarding wizard by resetting workspace config in the DB
-(`OPENRAG_STORAGE_MODE=db` by default):
+Повторно запускает мастер онбординга, сбрасывая конфигурацию рабочего пространства в БД
+(`OPENRAG_STORAGE_MODE=db` по умолчанию):
 
 ```bash
 uv run python scripts/reset_onboarding.py
 ```
 
-What it does:
+Что он делает:
 
-- Sets `workspace_config.meta.edited` to `false` (`GET /api/onboarding-status` → `onboarded: false`)
-- Clears `workspace_config.onboarding` (including `current_step` → `0`)
-- In `hybrid` / `files` mode, also updates `config.yaml`
+- Устанавливает `workspace_config.meta.edited` в `false` (`GET /api/onboarding-status` → `onboarded: false`)
+- Очищает `workspace_config.onboarding` (включая `current_step` → `0`)
+- В режимах `hybrid` / `files` также обновляет `config.yaml`
 
-Optional flags:
+Необязательные флаги:
 
-| Flag | Purpose |
+| Флаг | Назначение |
 | --- | --- |
-| `--dry-run` | Preview without writing |
-| `--reset-models` | Also clear selected LLM and embedding models |
+| `--dry-run` | Предварительный просмотр без записи |
+| `--reset-models` | Также очистить выбранные модели LLM и встраивания |
 
-Example — full wizard reset including model picks:
+Пример — полный сброс мастера, включая выбор моделей:
 
 ```bash
 uv run python scripts/reset_onboarding.py --reset-models
 ```
 
-After running, **restart the backend** and reload the app.
+После выполнения **перезапустите бэкенд** и перезагрузите приложение.
 
-This script does **not** delete ingested documents, knowledge filters, Langflow
-flows, or conversations. For a full teardown, use the authenticated API endpoint
-`POST /settings/rollback-onboarding` instead.
+Этот скрипт **не** удаляет принятые документы, фильтры знаний, Langflow-процессы
+или беседы. Для полного удаления используйте аутентифицированную конечную точку API
+`POST /settings/rollback-onboarding`.

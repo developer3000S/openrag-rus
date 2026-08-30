@@ -1,38 +1,38 @@
-# Typed Kubernetes Client Generation for OpenRAG
+# Создание типизированного клиента Kubernetes для OpenRAG
 
-This document explains how to generate and use typed Kubernetes clients for the OpenRAG CRDs.
+В этом документе объясняется, как генерировать и использовать типизированные клиенты Kubernetes для CRD OpenRAG.
 
-## Overview
+## Обзор
 
-Instead of using `unstructured.Unstructured`, you can now use strongly-typed Go clients that provide:
-- **Compile-time type safety** - Catch errors during development, not runtime
-- **IDE auto-completion** - Better developer experience
-- **Cleaner code** - No manual field path navigation or type assertions
+Вместо использования `unstructured.Unstructured` теперь можно использовать строго типизированные Go-клиенты, которые предоставляют:
+- **Типобезопасность на этапе компиляции** - Обнаруживайте ошибки во время разработки, а не в рантайме
+- **Автодополнение в IDE** - Лучше опыт разработчика
+- **Более чистый код** - Без ручного перебора путей полей и утверждений типов
 
-## Generating the Clientset
+## Генерация Clientset
 
-### Prerequisites
+### Предварительные требования
 
 ```bash
-# Install code-generator dependency
+# Установка зависимости code-generator
 go get k8s.io/code-generator@v0.33.0
 ```
 
-### Generate Clients
+### Генерация клиентов
 
 ```bash
-# Generate clientset, listers, and informers
+# Генерация clientset, listers и informers
 make generate-client
 ```
 
-This will create the following packages:
-- `pkg/generated/clientset/versioned` - Typed clientset
-- `pkg/generated/listers/api/v1alpha1` - Listers for efficient reads
-- `pkg/generated/informers/externalversions` - Informers for watching resources
+Это создаст следующие пакеты:
+- `pkg/generated/clientset/versioned` - Типизированный clientset
+- `pkg/generated/listers/api/v1alpha1` - Listers для эффективного чтения
+- `pkg/generated/informers/externalversions` - Informers для наблюдения за ресурсами
 
-## Usage Examples
+## Примеры использования
 
-### Before (Using Unstructured)
+### До (использование Unstructured)
 
 ```go
 import (
@@ -61,7 +61,7 @@ image, found, err := unstructured.NestedString(backend, "image")
 // No compile-time type checking!
 ```
 
-### After (Using Typed Client)
+### После (использование типизированного клиента)
 
 ```go
 import (
@@ -83,7 +83,7 @@ image := openrag.Spec.Backend.Image  // ✅ Type-safe!
 replicas := openrag.Spec.Backend.Replicas  // ✅ Auto-complete!
 ```
 
-## Full Example: Creating an OpenRAG Instance
+## Полный пример: создание экземпляра OpenRAG
 
 ```go
 package main
@@ -199,9 +199,9 @@ func main() {
 }
 ```
 
-## Using Informers (Efficient Watching)
+## Использование Informers (эффективное наблюдение)
 
-Informers provide efficient caching and watching of resources:
+Informers предоставляют эффективное кэширование и наблюдение за ресурсами:
 
 ```go
 import (
@@ -249,9 +249,9 @@ lister := openragInformer.Lister()
 openrags, err := lister.OpenRAGs("default").List(labels.Everything())
 ```
 
-## Benefits
+## Преимущества
 
-### Type Safety
+### Типобезопасность
 ```go
 // ❌ Unstructured - Runtime error
 image := obj.Object["spec"].(map[string]interface{})["backend"].(map[string]interface{})["image"].(string)
@@ -260,82 +260,82 @@ image := obj.Object["spec"].(map[string]interface{})["backend"].(map[string]inte
 image := openrag.Spec.Backend.Image
 ```
 
-### IDE Support
-- Auto-completion for all fields
-- Jump to definition
-- Inline documentation
-- Refactoring support
+### Поддержка IDE
+- Автодополнение для всех полей
+- Переход к определению
+- Встроенная документация
+- Поддержка рефакторинга
 
-### Cleaner Code
-- No type assertions
-- No manual field path navigation
-- Easier to read and maintain
+### Более чистый код
+- Без утверждений типов
+- Без ручного перебора путей полей
+- Легче читать и поддерживать
 
-## Regenerating Clients
+## Повторная генерация клиентов
 
-Run this command whenever you modify the CRD types:
+Запускайте эту команду всякий раз при изменении типов CRD:
 
 ```bash
-make generate        # Regenerate DeepCopy methods
-make generate-client # Regenerate clientsets, listers, informers
+make generate        # Перегенерировать методы DeepCopy
+make generate-client # Перегенерировать clientsets, listers, informers
 ```
 
-## Distribution
+## Распространение
 
-### Option 1: Publish as Go Module (Recommended)
+### Вариант 1: публикация как Go-модуль (рекомендуется)
 
-Users can import directly:
+Пользователи могут импортировать напрямую:
 
 ```go
 import clientset "github.com/langflow-ai/openrag-operator/pkg/generated/clientset/versioned"
 ```
 
-### Option 2: Copy Generated Code
+### Вариант 2: копирование сгенерированного кода
 
-If users don't want to depend on your entire module, they can copy the generated code to their project:
+Если пользователи не хотят зависеть от всего вашего модуля, они могут скопировать сгенерированный код в свой проект:
 
 ```bash
 cp -r pkg/generated /path/to/their/project/
 ```
 
-## Troubleshooting
+## Устранение неполадок
 
-### `code-generator` not found
+### `code-generator` не найден
 
-If you see this error:
+Если вы видите эту ошибку:
 ```
 Error: k8s.io/code-generator not found in module cache
 ```
 
-Run:
+Выполните:
 ```bash
 go mod download k8s.io/code-generator
-# OR
+# ИЛИ
 go get k8s.io/code-generator@v0.33.0
 go mod tidy
 ```
 
-The dependency is already in `go.mod`, so `go mod download` should be sufficient.
+Зависимость уже есть в `go.mod`, поэтому `go mod download` должно быть достаточно.
 
-### Permission denied on script
+### Отказ в доступе при запуске скрипта
 
 ```bash
 chmod +x hack/update-codegen.sh
 ```
 
-### Generated code not in version control
+### Сгенерированный код не в системе контроля версий
 
-It's recommended to commit generated code to version control so users can use it without running code generation.
+Рекомендуется коммитить сгенерированный код в систему контроля версий, чтобы пользователи могли использовать его без запуска генерации кода.
 
-### CI Check Failures
+### Сбои проверки CI
 
-If your pull request fails with:
+Если ваш pull request завершается ошибкой с:
 
 ```text
 Error: git diff --exit-code pkg/generated/
 ```
 
-This means you modified the API types but didn't regenerate the typed client. Fix it:
+Это означает, что вы изменили типы API, но не перегенерировали типизированный клиент. Исправьте это:
 
 ```bash
 make generate-client
@@ -344,24 +344,24 @@ git commit --amend --no-edit
 git push --force-with-lease
 ```
 
-Our CI automatically verifies that generated code is up to date to prevent inconsistencies.
+Наш CI автоматически проверяет, что сгенерированный код актуален, чтобы предотвратить несогласованности.
 
-## Contributing
+## Внесение вклада
 
-When modifying API types in `api/v1alpha1/`, always run:
+При изменении типов API в `api/v1alpha1/` всегда запускайте:
 
 ```bash
-make generate        # Regenerate deepcopy code
-make manifests       # Regenerate CRDs and RBAC
-make generate-client # Regenerate typed client
+make generate        # Перегенерировать код deepcopy
+make manifests       # Перегенерировать CRD и RBAC
+make generate-client # Перегенерировать типизированный клиент
 git add api/ config/ pkg/generated/
 git commit -m "feat: add new field to OpenRAG spec"
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for more details.
+Подробности см. в [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
-## References
+## Ссылки
 
 - [Kubernetes Code Generator](https://github.com/kubernetes/code-generator)
 - [Sample Controller](https://github.com/kubernetes/sample-controller)
-- [Client-go Documentation](https://github.com/kubernetes/client-go)
+- [Документация Client-go](https://github.com/kubernetes/client-go)

@@ -1,44 +1,44 @@
 # OpenRAG MCP
 
-> **The Python package `openrag-mcp` is deprecated and no longer updated. Use the built-in streamable HTTP endpoint instead.**
+> **Python-пакет `openrag-mcp` устарел и больше не обновляется. Используйте встроенную конечную точку потокового HTTP (streamable HTTP).**
 
-OpenRAG ships a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server over **streamable HTTP**, mounted on your OpenRAG instance at `/mcp`. This endpoint is part of your OpenRAG deployment; when connecting locally, nothing leaves your network.
+OpenRAG поставляется со встроенным сервером [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) через **потоковый HTTP**, смонтированным на вашем экземпляре OpenRAG по адресу `/mcp`. Эта конечная точка является частью вашего развёртывания OpenRAG; при локальном подключении ничто не покидает вашу сеть.
 
-Any MCP client that supports URL-based server configs, such as [Cursor](https://docs.cursor.com/context/model-context-protocol), [Claude Desktop](https://modelcontextprotocol.io/quickstart/user), and the MCP SDK, can connect directly to this endpoint.
+Любой MCP-клиент, поддерживающий URL-настройки сервера, такой как [Cursor](https://docs.cursor.com/context/model-context-protocol), [Claude Desktop](https://modelcontextprotocol.io/quickstart/user) и MCP SDK, может подключиться напрямую к этой конечной точке.
 
-There is no subprocess to spawn and nothing extra to install. Your client connects over HTTP using the same OpenRAG API key you use for the REST API. Document ingestion, task tracking, and knowledge filter tools are available directly.
+Нет необходимости запускать дополнительный процесс и ничего устанавливать дополнительно. Ваш клиент подключается по HTTP, используя тот же API-ключ OpenRAG, который вы используете для REST API. Приём документов, отслеживание задач и инструменты фильтров знаний доступны напрямую.
 
-## Prerequisites
+## Предварительные требования
 
-In addition to a running OpenRAG instance, you need an OpenRAG API key and your OpenRAG MCP endpoint URL.
+Помимо работающего экземпляра OpenRAG, вам нужен API-ключ OpenRAG и URL конечной точки MCP вашего OpenRAG.
 
-### Authentication
+### Аутентификация
 
-You need an OpenRAG API key (prefixed by `orag_`). You can create an OpenRAG API key in **Settings → API Keys**.
+Вам нужен API-ключ OpenRAG (с префиксом `orag_`). Вы можете создать API-ключ OpenRAG в **Настройки → API-ключи**.
 
-Pass your OpenRAG API key on every request using the `X-API-Key` or `Authorization: Bearer` headers.
+Передавайте свой API-ключ OpenRAG в каждом запросе с помощью заголовков `X-API-Key` или `Authorization: Bearer`.
 
-The same key works for both the REST API and MCP, and it is forwarded transparently to the underlying endpoints.
+Один и тот же ключ работает и для REST API, и для MCP, и прозрачно перенаправляется на нижележащие конечные точки.
 
-### Endpoint URL
+### URL конечной точки
 
-The MCP endpoint is `/mcp` on your OpenRAG instance. The host and port depend on how OpenRAG is deployed:
+Конечная точка MCP находится по адресу `/mcp` на вашем экземпляре OpenRAG. Хост и порт зависят от того, как развёрнут OpenRAG:
 
-| Deployment | MCP URL |
+| Развёртывание | URL MCP |
 |:-----------|:--------|
-| Default Docker deployment | `http://localhost:3000/mcp` |
-| Backend run directly (dev, outside Docker) | `http://localhost:8000/mcp` |
-| Remote / deployed instance | `https://your-openrag-instance.com/mcp` |
+| Развёртывание Docker по умолчанию | `http://localhost:3000/mcp` |
+| Бэкенд, запущенный напрямую (разработка, вне Docker) | `http://localhost:8000/mcp` |
+| Удалённый / развёрнутый экземпляр | `https://your-openrag-instance.com/mcp` |
 
-In the default Docker deployment the backend port (`8000`) is not published to the host. The OpenRAG frontend on port `3000` proxies `/mcp` to the backend and forwards your authentication headers. Therefore, **`http://localhost:3000/mcp`** is the correct local URL for a standard install.
+В развёртывании Docker по умолчанию порт бэкенда (`8000`) не публикуется на хост. Фронтенд OpenRAG на порту `3000` проксирует `/mcp` на бэкенд и перенаправляет ваши заголовки аутентификации. Поэтому **`http://localhost:3000/mcp`** — правильный локальный URL для стандартной установки.
 
-Use `http://localhost:8000/mcp` only when you run the backend directly without the frontend.
+Используйте `http://localhost:8000/mcp` только тогда, когда вы запускаете бэкенд напрямую без фронтенда.
 
-The following examples use the local Docker URL; replace this URL with your own host if you need to connect to a remote instance.
+Следующие примеры используют локальный URL Docker; замените этот URL на собственный хост, если вам нужно подключиться к удалённому экземпляру.
 
 ## Cursor
 
-Config file: `~/.cursor/mcp.json`
+Файл конфигурации: `~/.cursor/mcp.json`
 
 ```json
 {
@@ -53,11 +53,11 @@ Config file: `~/.cursor/mcp.json`
 }
 ```
 
-Restart Cursor after saving the config file.
+Перезапустите Cursor после сохранения файла конфигурации.
 
 ## Claude Desktop
 
-Config file:
+Файл конфигурации:
 
 * macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 * Windows: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -75,11 +75,11 @@ Config file:
 }
 ```
 
-Restart Claude Desktop after editing the config file.
+Перезапустите Claude Desktop после изменения файла конфигурации.
 
 ## IBM Bob
 
-Add the server to your IBM Bob MCP config with `type` set to `streamable-http`:
+Добавьте сервер в конфигурацию MCP IBM Bob, установив `type` в `streamable-http`:
 
 ```json
 {
@@ -95,31 +95,31 @@ Add the server to your IBM Bob MCP config with `type` set to `streamable-http`:
 }
 ```
 
-For more information, see [MCP integration with IBM Bob](https://www.ibm.com/think/tutorials/mcp-integration-ibm-bob).
+Дополнительные сведения см. в разделе [Интеграция MCP с IBM Bob](https://www.ibm.com/think/tutorials/mcp-integration-ibm-bob).
 
-## Available tools
+## Доступные инструменты
 
-All tools are auto-exposed from the `/v1/` API, and they are available immediately after connecting:
+Все инструменты автоматически предоставляются из API `/v1/` и доступны сразу после подключения:
 
-| Tool | Description |
+| Инструмент | Описание |
 | ---- | ----------- |
-| `openrag_chat` | Send a message and get a RAG-enhanced response. Supports `chat_id` and `filter_id`. |
-| `openrag_list_chats` | List all chat conversations. |
-| `openrag_get_chat` | Get a specific chat conversation by ID. |
-| `openrag_delete_chat` | Delete a chat conversation by ID. |
-| `openrag_search` | Semantic search over the knowledge base. Supports filters, score threshold, data sources. |
-| `openrag_ingest` | Ingest documents (files, URLs, text) into the knowledge base. Returns a `task_id`. |
-| `openrag_get_task_status` | Check the status of an ingestion task by `task_id`. |
-| `openrag_delete_document` | Delete a document from the knowledge base by filename. |
-| `openrag_get_settings` | Get current OpenRAG configuration (LLM, embeddings, chunk settings, system prompt). |
-| `openrag_update_settings` | Update OpenRAG configuration. All fields are optional. |
-| `openrag_list_models` | List available models for a provider (`openai`, `ollama`, `omniroute`). |
-| `openrag_create_knowledge_filter` | Create a knowledge filter to scope searches and chats. |
-| `openrag_search_knowledge_filters` | Search knowledge filters by name or criteria. |
-| `openrag_get_knowledge_filter` | Get a knowledge filter by ID. |
-| `openrag_update_knowledge_filter` | Update an existing knowledge filter. |
-| `openrag_delete_knowledge_filter` | Delete a knowledge filter by ID. |
+| `openrag_chat` | Отправить сообщение и получить ответ с RAG-усилением. Поддерживает `chat_id` и `filter_id`. |
+| `openrag_list_chats` | Список всех чат-бесед. |
+| `openrag_get_chat` | Получить конкретную чат-беседу по ID. |
+| `openrag_delete_chat` | Удалить чат-беседу по ID. |
+| `openrag_search` | Семантический поиск по базе знаний. Поддерживает фильтры, порог оценки, источники данных. |
+| `openrag_ingest` | Принять документы (файлы, URL, текст) в базу знаний. Возвращает `task_id`. |
+| `openrag_get_task_status` | Проверить статус задачи приёма по `task_id`. |
+| `openrag_delete_document` | Удалить документ из базы знаний по имени файла. |
+| `openrag_get_settings` | Получить текущую конфигурацию OpenRAG (LLM, встраивания, настройки фрагментации, системный промпт). |
+| `openrag_update_settings` | Обновить конфигурацию OpenRAG. Все поля необязательны. |
+| `openrag_list_models` | Список доступных моделей для провайдера (`openai`, `ollama`, `omniroute`). |
+| `openrag_create_knowledge_filter` | Создать фильтр знаний для ограничения поиска и чатов. |
+| `openrag_search_knowledge_filters` | Поиск фильтров знаний по имени или критериям. |
+| `openrag_get_knowledge_filter` | Получить фильтр знаний по ID. |
+| `openrag_update_knowledge_filter` | Обновить существующий фильтр знаний. |
+| `openrag_delete_knowledge_filter` | Удалить фильтр знаний по ID. |
 
-## License
+## Лицензия
 
-Apache 2.0 — see [LICENSE](../../LICENSE) for details.
+Apache 2.0 — подробности см. в [LICENSE](../../LICENSE).

@@ -1,123 +1,123 @@
 ---
 name: openrag_sdk
-description: Guide developers through integrating the OpenRAG SDK into applications with code examples, configuration, and best practices
+description: Помощь разработчикам в интеграции SDK OpenRAG в приложения с примерами кода, конфигурацией и лучшими практиками
 ---
 
-When the user asks to integrate the OpenRAG SDK or use OpenRAG in their application, follow this workflow.
+Когда пользователь просит интегрировать SDK OpenRAG или использовать OpenRAG в своём приложении, следуйте этому рабочему процессу.
 
-## Initial assessment phase
-Before starting SDK integration:
-1. Identify the OpenRAG instance:
-   - Determine the base URL (e.g., `http://localhost:3000`, `https://api.example.com`)
-   - Check if authentication is required (API key)
-   - Test API availability: `curl <base_url>` or `curl <base_url>/health`
-2. Identify the target application:
-   - Programming language (Python, JavaScript/TypeScript)
-   - Framework (if any): FastAPI, Flask, Express, React, Next.js, etc.
-   - Project structure and existing dependencies
-3. Determine integration requirements:
-   - RAG chat functionality (streaming or non-streaming)
-   - Semantic search
-   - Document ingestion and management
-   - Knowledge filters
-   - Conversation history management
-   - Settings management
+## Этап первоначальной оценки
+Перед началом интеграции SDK:
+1. Определите экземпляр OpenRAG:
+   - Определите базовый URL (например, `http://localhost:3000`, `https://api.example.com`)
+   - Проверьте, требуется ли аутентификация (API-ключ)
+   - Проверьте доступность API: `curl <base_url>` или `curl <base_url>/health`
+2. Определите целевое приложение:
+   - Язык программирования (Python, JavaScript/TypeScript)
+   - Фреймворк (если есть): FastAPI, Flask, Express, React, Next.js и т. д.
+   - Структуру проекта и существующие зависимости
+3. Определите требования к интеграции:
+   - Функциональность RAG-чата (потоковая или без потоковой передачи)
+   - Семантический поиск
+   - Приём и управление документами
+   - Фильтры знаний
+   - Управление историей бесед
+   - Управление настройками
 
-## Primary goals
-- Install the appropriate SDK package for the target language
-- Configure authentication and connection settings
-- Implement core functionality with working code examples
-- Add proper error handling
-- Test the integration locally
-- Document the integration for maintainability
+## Основные цели
+- Установить соответствующий пакет SDK для целевого языка
+- Настроить аутентификацию и параметры подключения
+- Реализовать основные функции с работающими примерами кода
+- Добавить надлежащую обработку ошибок
+- Протестировать интеграцию локально
+- Задокументировать интеграцию для удобства сопровождения
 
-## SDK installation
+## Установка SDK
 
 ### Python SDK
-**Package:** [`openrag-sdk`](https://pypi.org/project/openrag-sdk/)
+**Пакет:** [`openrag-sdk`](https://pypi.org/project/openrag-sdk/)
 
-Installation:
+Установка:
 ```bash
 pip install openrag-sdk
 ```
 
-Or with uv:
+Или с помощью uv:
 ```bash
 uv add openrag-sdk
 ```
 
 ### TypeScript/JavaScript SDK
-**Package:** [`openrag-sdk`](https://libraries.io/npm/openrag-sdk)
+**Пакет:** [`openrag-sdk`](https://libraries.io/npm/openrag-sdk)
 
-Installation:
+Установка:
 ```bash
 npm install openrag-sdk
 ```
 
-Or with other package managers:
+Или с помощью других менеджеров пакетов:
 ```bash
 yarn add openrag-sdk
 pnpm add openrag-sdk
 bun add openrag-sdk
 ```
 
-### MCP Server
-**Package:** [`openrag-mcp`](https://pypi.org/project/openrag-mcp/)
+### MCP-сервер
+**Пакет:** [`openrag-mcp`](https://pypi.org/project/openrag-mcp/)
 
-For MCP integration (Model Context Protocol):
+Для интеграции MCP (Model Context Protocol):
 ```bash
 pip install openrag-mcp
 ```
 
-Or with uvx:
+Или с помощью uvx:
 ```bash
 uvx openrag-mcp
 ```
 
-## Configuration
+## Конфигурация
 
-### Python SDK Configuration
-The SDK can be configured via environment variables or constructor arguments:
+### Конфигурация Python SDK
+SDK можно настроить через переменные окружения или аргументы конструктора:
 
-**Environment Variables:**
+**Переменные окружения:**
 ```bash
-OPENRAG_API_KEY=your-api-key  # Required if authentication is enabled
-OPENRAG_URL=http://localhost:3000  # Optional, defaults to localhost:3000
+OPENRAG_API_KEY=your-api-key  # Обязательно, если включена аутентификация
+OPENRAG_URL=http://localhost:3000  # Необязательно, по умолчанию localhost:3000
 ```
 
-**Constructor Arguments:**
+**Аргументы конструктора:**
 ```python
 from openrag_sdk import OpenRAGClient
 
-# Using environment variables (auto-discovers OPENRAG_API_KEY and OPENRAG_URL)
+# Использование переменных окружения (автоматически находит OPENRAG_API_KEY и OPENRAG_URL)
 client = OpenRAGClient()
 
-# Using explicit arguments
+# Использование явных аргументов
 client = OpenRAGClient(
     api_key="orag_...",
     base_url="https://api.example.com"
 )
 ```
 
-### TypeScript SDK Configuration
-Similar configuration options for TypeScript:
+### Конфигурация TypeScript SDK
+Аналогичные варианты конфигурации для TypeScript:
 
 ```typescript
 import { OpenRAGClient } from 'openrag-sdk';
 
-// Using environment variables
+// Использование переменных окружения
 const client = new OpenRAGClient();
 
-// Using explicit configuration
+// Использование явной конфигурации
 const client = new OpenRAGClient({
   apiKey: 'orag_...',
   baseUrl: 'https://api.example.com'
 });
 ```
 
-## Core functionality examples
+## Примеры основных функций
 
-### 1. Chat (Non-streaming)
+### 1. Чат (без потоковой передачи)
 
 **Python:**
 ```python
@@ -167,7 +167,7 @@ async function main() {
 main();
 ```
 
-### 2. Chat (Streaming)
+### 2. Чат (потоковая передача)
 
 **Python:**
 ```python
@@ -190,7 +190,7 @@ async def streaming_chat():
 asyncio.run(streaming_chat())
 ```
 
-**Python with stream() context manager:**
+**Python с контекстным менеджером stream():**
 ```python
 async def streaming_with_context():
     async with OpenRAGClient() as client:
@@ -235,7 +235,7 @@ async function streamingChat() {
 }
 ```
 
-### 3. Conversation History
+### 3. История бесед
 
 **Python:**
 ```python
@@ -292,7 +292,7 @@ async function manageConversations() {
 }
 ```
 
-### 4. Search
+### 4. Поиск
 
 **Python:**
 ```python
@@ -345,7 +345,7 @@ async function searchKnowledge() {
 }
 ```
 
-### 5. Document Management
+### 5. Управление документами
 
 **Python:**
 ```python
@@ -393,7 +393,7 @@ async function manageDocuments() {
 }
 ```
 
-### 6. Settings Management
+### 6. Управление настройками
 
 **Python:**
 ```python
@@ -408,7 +408,7 @@ async def manage_settings():
         # Update settings
         await client.settings.update({
             "llm_provider": "openai",
-            "llm_model": "gpt-4o",
+            "llm_model": "gpt-4o-mini",
             "embedding_provider": "openai",
             "embedding_model": "text-embedding-3-small"
         })
@@ -429,14 +429,14 @@ async function manageSettings() {
   // Update settings
   await client.settings.update({
     llm_provider: "openai",
-    llm_model: "gpt-4o",
+    llm_model: "gpt-4o-mini",
     embedding_provider: "openai",
     embedding_model: "text-embedding-3-small"
   });
 }
 ```
 
-### 7. Knowledge Filters
+### 7. Фильтры знаний
 
 **Python:**
 ```python
@@ -519,9 +519,9 @@ async function useKnowledgeFilters() {
 }
 ```
 
-## Error handling
+## Обработка ошибок
 
-### Python Error Handling
+### Обработка ошибок в Python
 ```python
 from openrag_sdk import (
     OpenRAGError,
@@ -550,7 +550,7 @@ async def handle_errors():
         print(f"API error: {e.message} (status: {e.status_code})")
 ```
 
-### TypeScript Error Handling
+### Обработка ошибок в TypeScript
 ```typescript
 import {
   OpenRAGClient,
@@ -584,9 +584,9 @@ async function handleErrors() {
 }
 ```
 
-## Integration patterns
+## Паттерны интеграции
 
-### Pattern 1: FastAPI Backend
+### Паттерн 1: бэкенд FastAPI
 ```python
 from fastapi import FastAPI, HTTPException
 from openrag_sdk import OpenRAGClient
@@ -632,7 +632,7 @@ async def search(query: str, limit: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-### Pattern 2: Express.js Backend
+### Паттерн 2: бэкенд Express.js
 ```typescript
 import express from 'express';
 import { OpenRAGClient } from 'openrag-sdk';
@@ -688,7 +688,7 @@ app.listen(3001, () => {
 });
 ```
 
-### Pattern 3: React Frontend
+### Паттерн 3: фронтенд React
 ```typescript
 import { useState } from 'react';
 import { OpenRAGClient } from 'openrag-sdk';
@@ -749,7 +749,7 @@ function ChatComponent() {
 }
 ```
 
-### Pattern 4: Streaming in React
+### Паттерн 4: потоковая передача в React
 ```typescript
 import { useState } from 'react';
 import { OpenRAGClient } from 'openrag-sdk';
@@ -805,35 +805,35 @@ function StreamingChat() {
 }
 ```
 
-## Security best practices
+## Лучшие практики безопасности
 
-1. **Never expose API keys in client-side code**
-   - Always proxy requests through your backend
-   - Use environment variables for API keys
-   - Implement proper authentication in your backend
+1. **Никогда не раскрывайте API-ключи в клиентском коде**
+   - Всегда проксируйте запросы через свой бэкенд
+   - Используйте переменные окружения для API-ключей
+   - Реализуйте надлежащую аутентификацию в своём бэкенде
 
-2. **Use HTTPS in production**
-   - Always use HTTPS for production deployments
-   - Configure proper SSL/TLS certificates
+2. **Используйте HTTPS в производстве**
+   - Всегда используйте HTTPS для производственных развёртываний
+   - Настраивайте корректные сертификаты SSL/TLS
 
-3. **Validate and sanitize inputs**
-   - Validate user inputs before sending to OpenRAG
-   - Sanitize outputs before displaying to users
-   - Implement rate limiting on your endpoints
+3. **Проверяйте и санируйте входные данные**
+   - Проверяйте пользовательский ввод перед отправкой в OpenRAG
+   - Санируйте вывод перед отображением пользователям
+   - Реализуйте ограничение скорости (rate limiting) на своих конечных точках
 
-4. **Implement proper error handling**
-   - Don't expose sensitive information in error messages
-   - Log errors securely for debugging
-   - Provide user-friendly error messages
+4. **Реализуйте надлежащую обработку ошибок**
+   - Не раскрывайте конфиденциальную информацию в сообщениях об ошибках
+   - Безопасно регистрируйте ошибки для отладки
+   - Предоставляйте понятные пользователю сообщения об ошибках
 
-5. **Follow OWASP guidelines**
-   - Implement proper authentication and authorization
-   - Protect against common vulnerabilities (XSS, CSRF, etc.)
-   - Keep dependencies up to date
+5. **Следуйте рекомендациям OWASP**
+   - Реализуйте надлежащую аутентификацию и авторизацию
+   - Защищайтесь от распространённых уязвимостей (XSS, CSRF и т. д.)
+   - Поддерживайте зависимости в актуальном состоянии
 
-## Testing strategies
+## Стратегии тестирования
 
-### Python Testing
+### Тестирование в Python
 ```python
 import pytest
 from openrag_sdk import OpenRAGClient
@@ -859,7 +859,7 @@ async def test_search_with_filters(client):
     assert isinstance(results.results, list)
 ```
 
-### TypeScript Testing
+### Тестирование в TypeScript
 ```typescript
 import { describe, it, expect } from 'vitest';
 import { OpenRAGClient } from 'openrag-sdk';
@@ -890,101 +890,101 @@ describe('OpenRAG SDK', () => {
 });
 ```
 
-## Troubleshooting
+## Устранение неполадок
 
-### Connection Issues
-- Verify the base URL is correct (e.g., `http://localhost:3000` or `https://api.example.com`)
-- Test connectivity: `curl <base_url>` or `curl <base_url>/health`
-- Check network connectivity if OpenRAG is on a remote server
-- Ensure no firewall or network policies blocking the connection
-- Verify DNS resolution if using a domain name
+### Проблемы с подключением
+- Проверьте правильность базового URL (например, `http://localhost:3000` или `https://api.example.com`)
+- Проверьте связь: `curl <base_url>` или `curl <base_url>/health`
+- Проверьте сетевую связность, если OpenRAG находится на удалённом сервере
+- Убедитесь, что брандмауэр или сетевые политики не блокируют соединение
+- Проверьте разрешение DNS при использовании доменного имени
 
-### Authentication Errors
-- Verify API key is correct if authentication is enabled
-- Check API key is properly set in environment variables
-- Ensure API key has necessary permissions
+### Ошибки аутентификации
+- Проверьте правильность API-ключа, если включена аутентификация
+- Проверьте, что API-ключ правильно задан в переменных окружения
+- Убедитесь, что API-ключ имеет необходимые разрешения
 
-### Performance Optimization
-- Use appropriate `limit` values (don't retrieve more sources than needed)
-- Set reasonable `score_threshold` to filter low-quality results
-- Implement caching for frequently asked questions
-- Use connection pooling for high-traffic applications
-- Consider using streaming for better user experience
+### Оптимизация производительности
+- Используйте подходящие значения `limit` (не запрашивайте источников больше, чем нужно)
+- Задавайте разумный `score_threshold` для фильтрации низкокачественных результатов
+- Реализуйте кэширование для часто задаваемых вопросов
+- Используйте пул соединений для приложений с высокой нагрузкой
+- Рассмотрите использование потоковой передачи для лучшего пользовательского опыта
 
-### Response Quality Issues
-- Adjust `score_threshold` to filter irrelevant results
-- Review and update system prompt for better responses
-- Ensure knowledge base has relevant documents
-- Consider using knowledge filters for domain-specific queries
+### Проблемы с качеством ответов
+- Настраивайте `score_threshold` для фильтрации нерелевантных результатов
+- Просматривайте и обновляйте системный промпт для лучших ответов
+- Убедитесь, что база знаний содержит релевантные документы
+- Рассмотрите использование фильтров знаний для доменно-специфичных запросов
 
-## Deployment considerations
+## Соображения о развёртывании
 
-1. **Environment configuration**
-   - Use different configs for dev/staging/prod
-   - Store sensitive data in environment variables or secrets management
-   - Use configuration files for non-sensitive settings
+1. **Конфигурация окружения**
+   - Используйте разные конфигурации для dev/staging/prod
+   - Храните конфиденциальные данные в переменных окружения или менеджере секретов
+   - Используйте файлы конфигурации для нечувствительных настроек
 
-2. **Health checks**
-   - Implement health check endpoints in your application
-   - Monitor OpenRAG service availability
-   - Set up alerts for failures
+2. **Проверки работоспособности**
+   - Реализуйте конечные точки проверки работоспособности в своём приложении
+   - Отслеживайте доступность сервиса OpenRAG
+   - Настройте оповещения о сбоях
 
-3. **Monitoring and logging**
-   - Add logging for SDK calls
-   - Track metrics (response times, error rates, etc.)
-   - Use structured logging for better analysis
+3. **Мониторинг и журналирование**
+   - Добавьте журналирование вызовов SDK
+   - Отслеживайте метрики (время ответа, уровень ошибок и т. д.)
+   - Используйте структурированное журналирование для лучшего анализа
 
-4. **Fallback handling**
-   - Implement graceful degradation if OpenRAG is unavailable
-   - Provide cached responses when possible
-   - Show appropriate error messages to users
+4. **Обработка отката**
+   - Реализуйте корректную деградацию, если OpenRAG недоступен
+   - Предоставляйте кэшированные ответы, когда это возможно
+   - Показывайте пользователям соответствующие сообщения об ошибках
 
-5. **Scaling**
-   - Consider load balancing for high-traffic scenarios
-   - Implement request queuing if needed
-   - Monitor resource usage and scale accordingly
+5. **Масштабирование**
+   - Рассмотрите балансировку нагрузки для сценариев с высокой нагрузкой
+   - Реализуйте постановку запросов в очередь при необходимости
+   - Отслеживайте использование ресурсов и масштабируйтесь соответственно
 
-## Documentation requirements
+## Требования к документации
 
-After integration, document:
-- SDK setup and configuration steps
-- Available endpoints and their usage
-- Example requests and responses
-- Error codes and handling strategies
-- Performance characteristics and limitations
-- Maintenance procedures and troubleshooting
+После интеграции задокументируйте:
+- Шаги настройки и конфигурации SDK
+- Доступные конечные точки и их использование
+- Примеры запросов и ответов
+- Коды ошибок и стратегии обработки
+- Характеристики производительности и ограничения
+- Процедуры обслуживания и устранение неполадок
 
-## Verification checklist
+## Контрольный список проверки
 
-Before considering integration complete:
-- [ ] SDK package installed successfully
-- [ ] Client successfully connects to OpenRAG
-- [ ] Chat functionality works (both streaming and non-streaming)
-- [ ] Search returns relevant results
-- [ ] Document ingestion works
-- [ ] Settings can be retrieved and updated
-- [ ] Knowledge filters can be created and used
-- [ ] Error handling is implemented
-- [ ] Tests are passing
-- [ ] Documentation is complete
-- [ ] Security best practices are followed
-- [ ] Performance is acceptable for use case
+Перед тем как считать интеграцию завершённой:
+- [ ] Пакет SDK успешно установлен
+- [ ] Клиент успешно подключается к OpenRAG
+- [ ] Функциональность чата работает (и потоковая, и без потоковой передачи)
+- [ ] Поиск возвращает релевантные результаты
+- [ ] Приём документов работает
+- [ ] Настройки можно получать и обновлять
+- [ ] Фильтры знаний можно создавать и использовать
+- [ ] Обработка ошибок реализована
+- [ ] Тесты проходят
+- [ ] Документация полная
+- [ ] Лучшие практики безопасности соблюдены
+- [ ] Производительность приемлема для сценария использования
 
-## Additional resources
+## Дополнительные ресурсы
 
 - **Python SDK:** https://pypi.org/project/openrag-sdk/
 - **TypeScript SDK:** https://libraries.io/npm/openrag-sdk
-- **MCP Server:** https://pypi.org/project/openrag-mcp/
-- **GitHub Repository:** https://github.com/langflow-ai/openrag/tree/main/sdks
-- **Official Documentation:** https://docs.openr.ag
+- **MCP-сервер:** https://pypi.org/project/openrag-mcp/
+- **Репозиторий GitHub:** https://github.com/langflow-ai/openrag/tree/main/sdks
+- **Официальная документация:** https://docs.openr.ag
 
-## Collaboration style
+## Стиль совместной работы
 
-- Provide working code examples based on official SDK documentation
-- Test integration steps before presenting them
-- Explain trade-offs between different approaches
-- Surface potential issues early (performance, security, etc.)
-- Keep examples focused on core functionality
-- Provide both minimal and production-ready examples
-- Be explicit about what requires OpenRAG to be running
-- Reference official package repositories for installation
+- Предоставляйте работающие примеры кода на основе официальной документации SDK
+- Тестируйте шаги интеграции перед их представлением
+- Объясняйте компромиссы между разными подходами
+- Выявляйте потенциальные проблемы заранее (производительность, безопасность и т. д.)
+- Держите примеры сфокусированными на основных функциях
+- Предоставляйте как минимальные, так и готовые к производству примеры
+- Явно указывайте, что требует запущенного OpenRAG
+- Ссылайтесь на официальные репозитории пакетов для установки

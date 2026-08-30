@@ -1,150 +1,150 @@
 ---
 name: openrag_install
-description: Plan and execute a minimal OpenRAG installation with requirement drafting, task tracking, configuration guidance, and local verification
+description: Планирование и выполнение минимальной установки OpenRAG с составлением требований, отслеживанием задач, рекомендациями по конфигурации и локальной проверкой
 ---
 
-When the user asks to install OpenRAG, follow this workflow in order.
+Когда пользователь просит установить OpenRAG, следуйте этому рабочему процессу по порядку.
 
-## Initial assessment phase
-Before starting installation, check for an existing OpenRAG installation:
-1. Check if `~/.openrag/tui/.env` exists
-2. If it exists:
-   - Read the configuration to understand what's already set up
-   - Check if services are currently running with `docker compose ps` for the generated OpenRAG compose file, or by filtering on the compose project/labels instead of `docker ps --filter "name=openrag"`
-   - Inform the user about the existing installation
-   - Ask if they want to:
-     - Start existing services (if stopped)
-     - Reconfigure existing installation
-     - Verify existing installation
-     - Proceed with fresh installation (will use existing config)
-3. If no existing installation found, proceed with fresh installation workflow
+## Этап первоначальной оценки
+Перед началом установки проверьте существующую установку OpenRAG:
+1. Проверьте, существует ли `~/.openrag/tui/.env`
+2. Если он существует:
+   - Прочитайте конфигурацию, чтобы понять, что уже настроено
+   - Проверьте, запущены ли в настоящее время сервисы с помощью `docker compose ps` для сгенерированного файла compose OpenRAG или фильтруя по проекту/меткам compose, а не через `docker ps --filter "name=openrag"`
+   - Сообщите пользователю о существующей установке
+   - Спросите, хочет ли он:
+     - Запустить существующие сервисы (если остановлены)
+     - Перенастроить существующую установку
+     - Проверить существующую установку
+     - Продолжить с новой установкой (будет использоваться существующая конфигурация)
+3. Если существующая установка не найдена, переходите к рабочему процессу новой установки
 
-## Primary goals
-- Produce a grounded installation spec in `requirements.md`
-- Break the work into executable tasks in `todo.md`
-- Implement all tasks that can be completed in the current environment
-- Pause for user action when a task requires credentials, configuration choices, or other interactive input
-- Verify the installation locally until `http://localhost:3000` launches without startup errors and `http://localhost:5001/docs` is reachable
-- Treat browser onboarding after the app launches as user-owned and outside installation completion
+## Основные цели
+- Составить обоснованную спецификацию установки в `requirements.md`
+- Разбить работу на выполнимые задачи в `todo.md`
+- Реализовать все задачи, которые можно выполнить в текущем окружении
+- Приостановиться для действия пользователя, когда задача требует учётных данных, выбора конфигурации или другого интерактивного ввода
+- Проверять установку локально, пока `http://localhost:3000` не запустится без ошибок запуска, а `http://localhost:5001/docs` не станет доступным
+- Считать онбординг в браузере после запуска приложения ответственностью пользователя и вне рамок завершения установки
 
-## Requirements authoring phase
-First, create or update `requirements.md` using the official OpenRAG installation documentation:
-- Use `https://docs.openr.ag/install-options` as the source of truth
-- Do not hallucinate implementation details that are not supported by the documentation or the local environment
-- Prioritize the minimal installation path and the fewest necessary steps
-- Organize requirements into logical categories
-- Use numbered identifiers in the format `REQ-001`, `REQ-002`, and so on
-- Include acceptance criteria for every requirement
-- Include requirements covering:
-  - System prerequisites and resource requirements
-  - Configuration and security
-  - Platform compatibility
-  - Edge cases and troubleshooting considerations
+## Этап составления требований
+Сначала создайте или обновите `requirements.md`, используя официальную документацию по установке OpenRAG:
+- Используйте `https://docs.openr.ag/install-options` как источник истины
+- Не выдумывайте детали реализации, которые не подтверждаются документацией или локальным окружением
+- Отдавайте приоритет минимальному пути установки и наименьшему числу необходимых шагов
+- Организуйте требования по логическим категориям
+- Используйте нумерованные идентификаторы в формате `REQ-001`, `REQ-002` и так далее
+- Включайте критерии приёмки для каждого требования
+- Включайте требования, охватывающие:
+  - Предварительные требования к системе и требования к ресурсам
+  - Конфигурацию и безопасность
+  - Совместимость платформ
+  - Крайние случаи и соображения по устранению неполадок
 
-Include the following specific requirement in the spec:
-- Non-containerized service: `docling-serve` on port `5001`
-- It is a required bundled Python service
-- It is bundled with OpenRAG and managed by `uvx` or `uv`
-- It should be automatically started and stopped via `uvx openrag`
-- It should be available at `http://localhost:5001/docs`
-- Verification should include either `lsof -i :5001` or `curl http://localhost:5001/docs`
-- Do not immediately flag failure if `http://localhost:5001/docs` is not ready right after startup; wait and re-check because `docling-serve` may come up after the main OpenRAG services
+Включите в спецификацию следующие конкретные требования:
+- Неконтейнеризованный сервис: `docling-serve` на порту `5001`
+- Это обязательный встроенный Python-сервис
+- Он встроен в OpenRAG и управляется через `uvx` или `uv`
+- Он должен автоматически запускаться и останавливаться через `uvx openrag`
+- Он должен быть доступен по адресу `http://localhost:5001/docs`
+- Проверка должна включать либо `lsof -i :5001`, либо `curl http://localhost:5001/docs`
+- Не помечайте сразу сбоем, если `http://localhost:5001/docs` не готов сразу после запуска; подождите и проверьте снова, потому что `docling-serve` может подняться после основных сервисов OpenRAG
 
-## Requirements review phase
-After drafting `requirements.md`:
-- Review it for gaps, ambiguities, contradictions, and missing edge cases
-- Tighten vague language
-- Add missing acceptance criteria where needed
-- Update the file before moving to implementation planning
+## Этап проверки требований
+После составления `requirements.md`:
+- Проверьте его на пробелы, неоднозначности, противоречия и пропущенные крайние случаи
+- Уточните нечёткие формулировки
+- Добавьте недостающие критерии приёмки, где это необходимо
+- Обновите файл перед переходом к планированию реализации
 
-## Task planning and execution phase
-After `requirements.md` is stable:
-1. Read `requirements.md`
-2. Create `todo.md` that breaks the work into concrete tasks
-3. Implement each task that is relevant to the current environment
-4. For user-interactive tasks, do not guess or fabricate values; instruct the user to complete the step and confirm when done
-5. Mark tasks complete in `todo.md` only after they pass validation
-6. If troubleshooting partially started OpenRAG services, stop all services before attempting to start them again
+## Этап планирования и выполнения задач
+После стабилизации `requirements.md`:
+1. Прочитайте `requirements.md`
+2. Создайте `todo.md`, разбивающий работу на конкретные задачи
+3. Реализуйте каждую задачу, относящуюся к текущему окружению
+4. Для задач, требующих взаимодействия с пользователем, не угадывайте и не выдумывайте значения; поручите пользователю выполнить шаг и подтвердить завершение
+5. Помечайте задачи завершёнными в `todo.md` только после того, как они пройдут проверку
+6. Если вы устраняете неполадки частично запущенных сервисов OpenRAG, остановите все сервисы перед повторной попыткой их запуска
 
-## CRITICAL: Interactive Terminal Limitation
-**Most agent shell tools cannot drive interactive terminal applications that require user input.** This includes any command that renders a TUI, prompts for passwords, or expects arrow-key navigation.
+## КРИТИЧНО: ограничение интерактивного терминала
+**Большинство инструментов оболочки агента не могут управлять интерактивными терминальными приложениями, требующими ввода пользователя.** Это включает любую команду, которая отображает TUI, запрашивает пароли или ожидает навигацию стрелками.
 
-When the installation reaches the point where `uvx openrag` needs to be run:
+Когда установка дойдёт до точки, где нужно запустить `uvx openrag`:
 
-### What NOT to do:
-- Do NOT attempt to run `uvx openrag` through the agent's shell tool expecting to interact with it
-- Do NOT try to use background processes for interactive commands
-- Do NOT assume you can send input to an already-running interactive terminal
+### Что НЕ делать:
+- НЕ пытайтесь запускать `uvx openrag` через инструмент оболочки агента, ожидая взаимодействия с ним
+- НЕ пытайтесь использовать фоновые процессы для интерактивных команд
+- НЕ предполагайте, что можете отправлять ввод в уже запущенный интерактивный терминал
 
-### What TO do:
-1. **Explicitly instruct the user** to open a NEW terminal window/tab outside the agent's shell
-2. Provide the exact command to run: `uvx --python 3.13 openrag`
-3. Give step-by-step instructions for what they will see and how to respond:
-   - First run: Select "Reconfigure" (option 2)
-   - Set OpenSearch Admin password (MUST be strong)
-   - Set Langflow Admin password (can autogenerate or manual)
-   - Accept defaults for other prompts (press 'N' or skip)
-   - Return to menu and select "Start services" (option 1)
-   - Wait for "Services are running" message
-4. **Wait for user confirmation** that they completed the steps
-5. **After confirmation**, verify the installation using non-interactive commands:
-   - Check container status: `docker ps --filter "name=openrag"`
-   - Verify ports: `lsof -i :3000` and `lsof -i :5001`
-   - Test endpoints: `curl http://localhost:3000` and `curl http://localhost:5001/docs`
+### Что делать:
+1. **Явно поручите пользователю** открыть НОВОЕ окно/вкладку терминала вне оболочки агента
+2. Предоставьте точную команду для запуска: `uvx --python 3.13 openrag`
+3. Дайте пошаговые инструкции о том, что он увидит и как реагировать:
+   - Первый запуск: выберите «Reconfigure» (вариант 2)
+   - Задайте пароль администратора OpenSearch (ОБЯЗАТЕЛЬНО надёжный)
+   - Задайте пароль администратора Langflow (можно автоматически сгенерировать или вручную)
+   - Примите значения по умолчанию для остальных подсказок (нажмите 'N' или пропустите)
+   - Вернитесь в меню и выберите «Start services» (вариант 1)
+   - Дождитесь сообщения «Services are running»
+4. **Дождитесь подтверждения пользователя**, что он выполнил шаги
+5. **После подтверждения** проверьте установку неинтерактивными командами:
+   - Проверьте состояние контейнеров: `docker ps --filter "name=openrag"`
+   - Проверьте порты: `lsof -i :3000` и `lsof -i :5001`
+   - Протестируйте конечные точки: `curl http://localhost:3000` и `curl http://localhost:5001/docs`
 
-### Example user instruction format:
+### Пример формата инструкции пользователю:
 ```
-The next step requires running an interactive command that I cannot control directly.
+Следующий шаг требует запуска интерактивной команды, которой я не могу управлять напрямую.
 
-Please open a NEW terminal window (separate from this agent session) and run:
+Пожалуйста, откройте НОВОЕ окно терминала (отдельное от этой сессии агента) и выполните:
 
     uvx --python 3.13 openrag
 
-You will see a menu. Follow these steps:
-1. Type '2' and press Enter (Reconfigure)
-2. Enter a STRONG OpenSearch Admin password (write it down!)
-3. Enter Langflow Admin password (or autogenerate)
-4. Press 'N' or skip for other prompts
-5. Type '1' and press Enter (Start services)
-6. Wait for "Services are running" message
+Вы увидите меню. Выполните следующие шаги:
+1. Введите '2' и нажмите Enter (Reconfigure)
+2. Введите НАДЁЖНЫЙ пароль администратора OpenSearch (запишите его!)
+3. Введите пароль администратора Langflow (или автоматически сгенерируйте)
+4. Нажимайте 'N' или пропускайте остальные подсказки
+5. Введите '1' и нажмите Enter (Start services)
+6. Дождитесь сообщения "Services are running"
 
-Once complete, come back here and confirm: "Configuration and services started successfully"
+После завершения вернитесь сюда и подтвердите: "Конфигурация и сервисы запущены успешно"
 ```
 
-## User-interactive guidance
-When a task requires user input, secret values, or interactive terminal control:
-- Tell the user exactly what action they need to take
-- Explain how you will verify completion
-- Wait for confirmation before proceeding
-- Explicitly instruct the user that the OpenSearch password must be strong, defaults can be used for all other values to get started quickly
-- **ALWAYS instruct users to run `uvx openrag` in a separate terminal outside the agent's shell**
-- Provide explicit step-by-step guidance for what they will see and how to respond
-- After user confirms completion, verify using non-interactive commands
+## Рекомендации по взаимодействию с пользователем
+Когда задача требует ввода пользователя, секретных значений или управления интерактивным терминалом:
+- Сообщите пользователю, какое действие ему нужно выполнить
+- Объясните, как вы будете проверять завершение
+- Дождитесь подтверждения перед продолжением
+- Явно укажите пользователю, что пароль OpenSearch должен быть надёжным, а для остальных значений можно использовать значения по умолчанию, чтобы быстро начать
+- **ВСЕГДА поручайте пользователю запускать `uvx openrag` в отдельном терминале вне оболочки агента**
+- Предоставляйте явные пошаговые инструкции о том, что он увидит и как реагировать
+- После подтверждения пользователем завершения проверяйте неинтерактивными командами
 
-## Safety and accuracy rules
-- Prefer official documentation and observed local state over assumptions
-- Do not invent ports, services, commands, configuration keys, or file locations unless verified
-- Keep installation steps as simple and minimal as possible
-- Use secure defaults and align with OWASP-style handling of secrets and credentials
-- Call out platform-specific limitations when they affect installation or verification
-- **Be explicit that the agent's shell cannot drive interactive TUI applications**
-- **Never attempt to run `uvx openrag` interactively through the agent's shell**
-- Do not treat delayed startup alone as a failure condition when output is still progressing normally
+## Правила безопасности и точности
+- Отдавайте предпочтение официальной документации и наблюдаемому локальному состоянию, а не предположениям
+- Не выдумывайте порты, сервисы, команды, ключи конфигурации или расположения файлов, если они не проверены
+- Максимально упрощайте и минимизируйте шаги установки
+- Используйте безопасные значения по умолчанию и придерживайтесь обработки секретов и учётных данных в стиле OWASP
+- Указывайте ограничения платформ, когда они влияют на установку или проверку
+- **Явно указывайте, что оболочка агента не может управлять интерактивными TUI-приложениями**
+- **Никогда не пытайтесь запускать `uvx openrag` интерактивно через оболочку агента**
+- Не считайте задержку запуска саму по себе условием сбоя, когда вывод всё ещё продвигается нормально
 
-## Verification and completion
-Before considering the installation complete:
-- Verify all completed tasks against the acceptance criteria in `requirements.md`
-- Confirm required services are running
-- Verify `http://localhost:3000` first
-- Wait briefly, then verify `docling-serve` is reachable at `http://localhost:5001/docs`
-- If OpenRAG services were restarted during troubleshooting, verify they are all healthy after the clean restart
-- Only escalate to troubleshooting if repeated checks fail after a reasonable delay or the terminal shows explicit errors
-- Consider the installation complete once the app launches without startup errors on `http://localhost:3000` and `http://localhost:5001/docs` is reachable
-- Do not treat provider selection or browser onboarding completion as part of installation completion
+## Проверка и завершение
+Перед тем как считать установку завершённой:
+- Проверьте все завершённые задачи на соответствие критериям приёмки в `requirements.md`
+- Подтвердите, что требуемые сервисы запущены
+- Сначала проверьте `http://localhost:3000`
+- Подождите немного, затем проверьте, что `docling-serve` доступен по адресу `http://localhost:5001/docs`
+- Если сервисы OpenRAG перезапускались во время устранения неполадок, убедитесь, что все они работоспособны после чистого перезапуска
+- Переходите к устранению неполадок, только если повторные проверки не проходят после разумной задержки или терминал показывает явные ошибки
+- Считайте установку завершённой, как только приложение запустится без ошибок запуска на `http://localhost:3000`, а `http://localhost:5001/docs` станет доступным
+- Не считайте выбор провайдера или завершение онбординга в браузере частью завершения установки
 
-## Collaboration style
-- Be explicit about what is known, what is inferred, and what still needs verification
-- Surface ambiguities early and resolve them before implementation
-- Keep outputs structured and easy to audit
-- Iterate on `requirements.md` and `todo.md` as new validated information is discovered
-- **Clearly communicate when user action is required in a separate terminal**
+## Стиль совместной работы
+- Явно указывайте, что известно, что предполагается и что ещё нужно проверить
+- Выявляйте неоднозначности заранее и разрешайте их до реализации
+- Делайте выводы структурированными и лёгкими для аудита
+- Итеративно обновляйте `requirements.md` и `todo.md` по мере обнаружения новой проверенной информации
+- **Чётко сообщайте, когда требуется действие пользователя в отдельном терминале**

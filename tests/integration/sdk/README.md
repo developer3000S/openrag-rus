@@ -1,145 +1,145 @@
-# OpenRAG Python SDK — QA Test Checklist
+# Python SDK OpenRAG — контрольный список QA-тестов
 
-Live integration tests against a running OpenRAG instance (`http://localhost:3000` by default).
+Живые интеграционные тесты против работающего экземпляра OpenRAG (по умолчанию `http://localhost:3000`).
 
-**Run all SDK tests:**
+**Запустить все SDK-тесты:**
 ```bash
 make test-sdk
 ```
 
 ---
 
-## Authentication (`test_auth.py`)
+## Аутентификация (`test_auth.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 1 | Construct client with no API key | Raises `AuthenticationError` immediately |
-| 2 | Construct client with `extra_headers` only (IBM auth mode) and make a real API call | Headers reach the server end-to-end; succeeds, or raises a clean `AuthenticationError` (401) if IBM auth mode isn't enabled on the target instance |
-| 3 | Construct client with only `OPENRAG_API_KEY` env var set | Client constructs without error |
-| 4 | Explicit `api_key` argument with `OPENRAG_API_KEY` env var also set | Explicit value takes precedence over the env var |
-| 5 | Send request with invalid API key | Raises `AuthenticationError` with status 401 or 403 |
-| 6 | Send request with well-formed but non-existent key | Raises `AuthenticationError` |
+| 1 | Создать клиент без API-ключа | Немедленно вызывает `AuthenticationError` |
+| 2 | Создать клиент только с `extra_headers` (режим аутентификации IBM) и выполнить реальный вызов API | Заголовки доходят до сервера сквозным образом; успех или чистая ошибка `AuthenticationError` (401), если режим аутентификации IBM не включён на целевом экземпляре |
+| 3 | Создать клиент только с заданной переменной окружения `OPENRAG_API_KEY` | Клиент создаётся без ошибки |
+| 4 | Явный аргумент `api_key` при также заданной переменной окружения `OPENRAG_API_KEY` | Явное значение имеет приоритет над переменной окружения |
+| 5 | Отправить запрос с недопустимым API-ключом | Вызывает `AuthenticationError` со статусом 401 или 403 |
+| 6 | Отправить запрос с корректно оформленным, но несуществующим ключом | Вызывает `AuthenticationError` |
 
 ---
 
-## Chat (`test_chat.py`)
+## Чат (`test_chat.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 7 | Non-streaming chat | Returns non-empty response string; any `sources` are valid `Source`s with `score` in `[0, 1]` |
-| 8 | Chat with `filters`, `limit`, and `score_threshold` together | `len(response.sources) <= limit` |
-| 9 | Streaming chat (`create(stream=True)`) | Yields content events with text deltas; the last event is `done` with a non-null `chat_id` |
-| 10 | Streaming via context manager (`stream()`) | Accumulated `stream.text` is non-empty |
-| 11 | `text_stream` async iterator | Yields plain text chunks |
-| 12 | `final_text()` | Returns full accumulated response |
-| 13 | Conversation continuation (pass `chat_id`) | Second reply uses same conversation; `followup.chat_id == chat_id` |
-| 14 | List conversations | Returns list of conversations; `title`, `created_at`, `last_activity`, `message_count` are correctly typed |
-| 15 | Get conversation by ID | Returns conversation with message history; message `role`/`content` are correctly typed |
-| 16 | Delete existing conversation | Returns `True` |
-| 17 | Chat with ingested document (RAG) | Response sources include the ingested file |
-| 18 | Stream continuation with `chat_id` | Follow-up stream uses existing conversation |
-| 19 | Every response includes `chat_id` | `chat_id` is a non-empty string |
-| 20 | `chat_id` available after stream consumed | `stream.chat_id` is populated |
-| 21 | `sources` field on response | Always a list (may be empty) |
+| 7 | Чат без потоковой передачи | Возвращает непустую строку ответа; любые `sources` — допустимые объекты `Source` с `score` в диапазоне `[0, 1]` |
+| 8 | Чат с `filters`, `limit` и `score_threshold` вместе | `len(response.sources) <= limit` |
+| 9 | Потоковый чат (`create(stream=True)`) | Генерирует события content с текстовыми фрагментами; последнее событие — `done` с непустым `chat_id` |
+| 10 | Потоковая передача через контекстный менеджер (`stream()`) | Накопленный `stream.text` непустой |
+| 11 | Асинхронный итератор `text_stream` | Генерирует фрагменты простого текста |
+| 12 | `final_text()` | Возвращает полный накопленный ответ |
+| 13 | Продолжение беседы (передать `chat_id`) | Второй ответ использует ту же беседу; `followup.chat_id == chat_id` |
+| 14 | Список бесед | Возвращает список бесед; `title`, `created_at`, `last_activity`, `message_count` корректно типизированы |
+| 15 | Получить беседу по ID | Возвращает беседу с историей сообщений; `role`/`content` сообщений корректно типизированы |
+| 16 | Удалить существующую беседу | Возвращает `True` |
+| 17 | Чат с принятым документом (RAG) | Источники ответа включают принятый файл |
+| 18 | Продолжение потока с `chat_id` | Последующий поток использует существующую беседу |
+| 19 | Каждый ответ включает `chat_id` | `chat_id` — непустая строка |
+| 20 | `chat_id` доступен после потребления потока | `stream.chat_id` заполнен |
+| 21 | Поле `sources` в ответе | Всегда список (может быть пустым) |
 
 ---
 
-## Documents (`test_documents.py`)
+## Документы (`test_documents.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 22 | Ingest file (async, `wait=False`) | Returns a non-empty `task_id`; polling reaches terminal state |
-| 23 | Ingest file (blocking, `wait=True`) | Returns terminal status with `total_files`, `processed_files`, `successful_files`, `failed_files` all populated |
-| 24 | Delete ingested document (deterministic ingest) | `success=True`, `deleted_chunks > 0` |
-| 25 | Delete never-ingested filename | `success=False`, `deleted_chunks=0`, error message present |
-| 26 | `get_task_status()` with a nonexistent task id | Raises `NotFoundError` |
-| 27 | Delete by a genuinely nonexistent `filter_id` | Raises `NotFoundError` (distinct from the wildcard-`data_sources` rejection case, which raises a generic `OpenRAGError`) |
-| 28 | `wait_for_task()` with a very small `timeout` | Raises `TimeoutError` before the task completes |
-| 29 | Ingest via file object (`io.BytesIO`) | Accepted and processed without error |
-| 30 | Re-ingest same filename twice | Does not raise; second call returns a status |
-| 31 | Ingest `.md` file | Accepted and processed without error |
-| 32 | Poll task status manually | `get_task_status()` returns a status; `wait_for_task()` returns `completed` or `failed` |
-| 33 | Delete documents by `filter_id` | Removes only the filenames in the filter's `data_sources` |
-| 34 | Delete by `filter_id` with wildcard `data_sources` | Rejected with `OpenRAGError` |
-| 35 | Delete with both `filename` and `filter_id` | Rejected with `ValueError` |
-| 36 | Delete with neither `filename` nor `filter_id` | Rejected with `ValueError` |
+| 22 | Приём файла (асинхрон, `wait=False`) | Возвращает непустой `task_id`; опрос достигает терминального состояния |
+| 23 | Приём файла (блокирующий, `wait=True`) | Возвращает терминальный статус с заполненными `total_files`, `processed_files`, `successful_files`, `failed_files` |
+| 24 | Удалить принятый документ (детерминированный приём) | `success=True`, `deleted_chunks > 0` |
+| 25 | Удалить никогда не принятое имя файла | `success=False`, `deleted_chunks=0`, присутствует сообщение об ошибке |
+| 26 | `get_task_status()` с несуществующим ID задачи | Вызывает `NotFoundError` |
+| 27 | Удалить по действительно несуществующему `filter_id` | Вызывает `NotFoundError` (отличается от случая отклонения подстановочного `data_sources`, который вызывает общую ошибку `OpenRAGError`) |
+| 28 | `wait_for_task()` с очень малым `timeout` | Вызывает `TimeoutError` до завершения задачи |
+| 29 | Приём через файловый объект (`io.BytesIO`) | Принимается и обрабатывается без ошибки |
+| 30 | Повторный приём того же имени файла дважды | Не вызывает ошибку; второй вызов возвращает статус |
+| 31 | Приём файла `.md` | Принимается и обрабатывается без ошибки |
+| 32 | Ручной опрос статуса задачи | `get_task_status()` возвращает статус; `wait_for_task()` возвращает `completed` или `failed` |
+| 33 | Удаление документов по `filter_id` | Удаляет только имена файлов в `data_sources` фильтра |
+| 34 | Удаление по `filter_id` с подстановочным `data_sources` | Отклоняется с `OpenRAGError` |
+| 35 | Удаление с одновременно `filename` и `filter_id` | Отклоняется с `ValueError` |
+| 36 | Удаление без `filename` и без `filter_id` | Отклоняется с `ValueError` |
 
 ---
 
-## Search (`test_search.py`)
+## Поиск (`test_search.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 37 | Basic search query | Returns a results list; each result's `score` is in `[0, 1]` |
-| 38 | Search with `limit=1` | Returns at most 1 result |
-| 39 | Search with `score_threshold=0.99` | Returns a list (may be empty) without error |
-| 40 | Search with `score_threshold=0.5` | All returned results have `score >= 0.5` |
-| 41 | Nonsense/obscure query | Returns empty list, no error |
-| 42 | Unicode and emoji in query | Returns list, no error |
-| 43 | Result fields (`limit=5`) | At most 5 results; `text` is a non-empty string; `page`/`mimetype` are `None` or correctly typed |
-| 44 | Whitespace-only query (`"   "`) | Raises `ValidationError` |
-| 44a | Search with `SearchFilters(data_sources=[filename])` | Wildcard query returns only chunks from that file; a second ingested file is excluded |
+| 37 | Базовый поисковый запрос | Возвращает список результатов; `score` каждого результата в диапазоне `[0, 1]` |
+| 38 | Поиск с `limit=1` | Возвращает не более 1 результата |
+| 39 | Поиск с `score_threshold=0.99` | Возвращает список (может быть пустым) без ошибки |
+| 40 | Поиск с `score_threshold=0.5` | Все возвращённые результаты имеют `score >= 0.5` |
+| 41 | Бессмысленный/непонятный запрос | Возвращает пустой список, без ошибки |
+| 42 | Юникод и emoji в запросе | Возвращает список, без ошибки |
+| 43 | Поля результатов (`limit=5`) | Не более 5 результатов; `text` — непустая строка; `page`/`mimetype` — `None` или корректно типизированы |
+| 44 | Запрос только из пробелов (`"   "`) | Вызывает `ValidationError` |
+| 44a | Поиск с `SearchFilters(data_sources=[имя_файла])` | Подстановочный запрос возвращает только фрагменты из этого файла; второй принятый файл исключается |
 
 ---
 
-## Settings (`test_settings.py`)
+## Настройки (`test_settings.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 45 | Get settings | Response includes `agent` and `knowledge` sections, including `chunk_overlap`, `table_structure`, `ocr`, `picture_descriptions`, and `agent.system_prompt` (each `None` or correctly typed) |
-| 46 | Update `chunk_size` setting | Update succeeds; value readable back unchanged |
+| 45 | Получить настройки | Ответ включает разделы `agent` и `knowledge`, включая `chunk_overlap`, `table_structure`, `ocr`, `picture_descriptions` и `agent.system_prompt` (каждый — `None` или корректно типизирован) |
+| 46 | Обновить настройку `chunk_size` | Обновление выполняется успешно; значение читается обратно неизменённым |
 
 ---
 
-## Models (`test_models.py`)
+## Модели (`test_models.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 47 | List models for a provider (`openai`) | Returns `language_models` and `embedding_models` as lists |
-| 48 | List models, parametrized per provider (`openai`, `ollama`, `omniroute`) | `openai` is required to return typed `ModelOption` entries (`value: str`) with at most one `default`; other providers are marked `SKIPPED` (not failed) if unconfigured (`ValidationError`) |
-| 49 | List models for an invalid provider | Raises `ValidationError` |
+| 47 | Список моделей для провайдера (`openai`) | Возвращает `language_models` и `embedding_models` как списки |
+| 48 | Список моделей, параметризован по провайдеру (`openai`, `ollama`, `omniroute`) | `openai` обязан возвращать типизированные записи `ModelOption` (`value: str`) с не более чем одним `default`; другие провайдеры помечаются как `SKIPPED` (не провалены), если не настроены (`ValidationError`) |
+| 49 | Список моделей для недопустимого провайдера | Вызывает `ValidationError` |
 
 ---
 
-## Knowledge Filters (`test_filters.py`)
+## Фильтры знаний (`test_filters.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 50 | Create filter | `success=True`, `id` returned, `error is None` |
-| 51 | Search filters by name | Returns list containing the created filter; a guaranteed-no-match query returns `[]`; `limit=1` returns at most 1 |
-| 52 | Get filter by ID | Returns filter with correct `id`, `name`, `query_data`, `owner`, `created_at`, `updated_at` |
-| 53 | Update filter description | Update returns `True`; description readable back |
-| 54 | Delete filter (wrapped in `try`/`finally` so it can't leak) | Returns `True` |
-| 55 | Get deleted filter | Returns `None` |
-| 56 | Pass `filter_id` to `chat.create()` | No error; response returned |
-| 57 | Pass `filter_id` to `search.query()` | No error; results returned |
+| 50 | Создать фильтр | `success=True`, возвращается `id`, `error is None` |
+| 51 | Поиск фильтров по имени | Возвращает список, содержащий созданный фильтр; запрос с гарантированным отсутствием совпадений возвращает `[]`; `limit=1` возвращает не более 1 |
+| 52 | Получить фильтр по ID | Возвращает фильтр с корректными `id`, `name`, `query_data`, `owner`, `created_at`, `updated_at` |
+| 53 | Обновить описание фильтра | Обновление возвращает `True`; описание читается обратно |
+| 54 | Удалить фильтр (обёрнуто в `try`/`finally`, чтобы не было утечки) | Возвращает `True` |
+| 55 | Получить удалённый фильтр | Возвращает `None` |
+| 56 | Передать `filter_id` в `chat.create()` | Без ошибки; ответ возвращается |
+| 57 | Передать `filter_id` в `search.query()` | Без ошибки; результаты возвращаются |
 
 ---
 
-## Error Handling (`test_errors.py`)
+## Обработка ошибок (`test_errors.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 58 | Connect to dead port | Raises a network exception within timeout |
-| 59 | Get conversation with random UUID | Raises `NotFoundError` with `status_code == 404` |
-| 60 | Delete conversation with random UUID | Returns `False` |
-| 61 | Update settings with invalid value (`chunk_size=-999999`) | Raises `OpenRAGError` subclass |
-| 62 | Call `ingest()` with no arguments | Raises `ValueError` |
-| 63 | Call `ingest()` with `BytesIO` but no filename | Raises `ValueError` |
-| 64 | Iterate a fully-consumed `ChatStream` a second time | Raises `RuntimeError` |
-| 65 | `client.close()` with a caller-supplied `http_client` | Does not close the external `httpx.AsyncClient` |
-| 66 | API call after an `async with OpenRAGClient(...)` block exits | Raises (the SDK-owned client was closed on `__aexit__`) |
+| 58 | Подключиться к неработающему порту | Вызывает сетевую исключение в пределах таймаута |
+| 59 | Получить беседу со случайным UUID | Вызывает `NotFoundError` с `status_code == 404` |
+| 60 | Удалить беседу со случайным UUID | Возвращает `False` |
+| 61 | Обновить настройки с недопустимым значением (`chunk_size=-999999`) | Вызывает подкласс `OpenRAGError` |
+| 62 | Вызвать `ingest()` без аргументов | Вызывает `ValueError` |
+| 63 | Вызвать `ingest()` с `BytesIO`, но без имени файла | Вызывает `ValueError` |
+| 64 | Повторно перебрать полностью потреблённый `ChatStream` | Вызывает `RuntimeError` |
+| 65 | `client.close()` с предоставленным вызывающим `http_client` | Не закрывает внешний `httpx.AsyncClient` |
+| 66 | Вызов API после завершения блока `async with OpenRAGClient(...)` | Вызывает ошибку (клиент, принадлежащий SDK, был закрыт при `__aexit__`) |
 
 ---
 
-## End-to-End (`test_e2e.py`)
+## Сквозное тестирование (`test_e2e.py`)
 
-| # | Test | Expected |
+| # | Тест | Ожидаемый результат |
 |---|------|----------|
-| 67 | Full RAG pipeline: ingest → search → chat | Chat sources include the ingested document |
-| 68 | Multi-turn conversation with RAG | Second turn uses same `chat_id`; context carried over |
-| 69 | Knowledge filter scopes search and chat | Search and chat succeed with `filter_id`; filter cleaned up |
+| 67 | Полный RAG-конвейер: приём → поиск → чат | Источники чата включают принятый документ |
+| 68 | Многоходовая беседа с RAG | Второй ход использует тот же `chat_id`; контекст сохраняется |
+| 69 | Фильтр знаний ограничивает поиск и чат | Поиск и чат выполняются успешно с `filter_id`; фильтр очищается |
 
 ---
 
-**Total: 70 tests across 9 domains.**
+**Итого: 70 тестов в 9 областях.**

@@ -1,93 +1,93 @@
-# OpenRAG Python SDK smoke tests (remote / IBM SaaS)
+# Дымовые тесты Python SDK OpenRAG (удалённо / IBM SaaS)
 
-A standalone [uv](https://docs.astral.sh/uv/) project that exercises **every
-functionality of the [`openrag-sdk`](https://pypi.org/project/openrag-sdk/)
-Python client** against a remote OpenRAG deployment and writes a pass/fail
-report. Designed for IBM SaaS deployments, where authentication uses a
-username + API key (sent as `X-Username` / `X-Api-Key` headers) instead of the
-self-hosted `OPENRAG_API_KEY` flow.
+Автономный проект на [uv](https://docs.astral.sh/uv/), который проверяет **всю
+функциональность Python-клиента [`openrag-sdk`](https://pypi.org/project/openrag-sdk/)**
+против удалённого развёртывания OpenRAG и записывает отчёт о прохождении/непрохождении.
+Разработан для развёртываний IBM SaaS, где аутентификация использует
+имя пользователя + API-ключ (отправляются в заголовках `X-Username` / `X-Api-Key`) вместо
+самохостингового потока `OPENRAG_API_KEY`.
 
-The checks mirror the repo's pytest integration suite
-(`tests/integration/sdk/`) but run standalone — no pytest, no local backend,
-no onboarding step.
+Проверки повторяют набор интеграционных тестов pytest репозитория
+(`tests/integration/sdk/`), но запускаются автономно — без pytest, без локального бэкенда,
+без этапа онбординга.
 
-## Setup
+## Настройка
 
 ```bash
 cd scripts/test_scripts/sdk/python
-uv sync                 # installs the latest openrag-sdk from PyPI
-cp .env.example .env    # then fill in your URL, username, and API key
+uv sync                 # устанавливает последний openrag-sdk из PyPI
+cp .env.example .env    # затем заполните свой URL, имя пользователя и API-ключ
 ```
 
-To pick up a newer SDK release later: `uv lock --upgrade && uv sync`.
+Чтобы позже подхватить более новую версию SDK: `uv lock --upgrade && uv sync`.
 
-The project depends on the latest `openrag-sdk` published to PyPI (currently
-0.3.1). The two delete-by-filter_id checks need the unreleased 0.4.0 API and
-auto-skip (with a reason in the report) until that version ships — re-run
-`uv lock --upgrade` once it does.
+Проект зависит от последнего `openrag-sdk`, опубликованного в PyPI (в настоящее время
+0.3.1). Две проверки удаления по filter_id требуют ещё не выпущенного API 0.4.0 и
+автоматически пропускаются (с указанием причины в отчёте) до выхода этой версии — повторно запустите
+`uv lock --upgrade`, когда она выйдет.
 
-## Run
+## Запуск
 
 ```bash
-uv run python main.py                          # full run, config from .env
-uv run python main.py --only search,chat       # subset of suites
+uv run python main.py                          # полный запуск, конфигурация из .env
+uv run python main.py --only search,chat       # подмножество наборов проверок
 uv run python main.py \
   --url https://your-instance.example.com \
   --username you@example.com \
-  --api-key YOUR_KEY                           # explicit credentials
+  --api-key YOUR_KEY                           # явные учётные данные
 ```
 
-Configuration precedence: CLI flags > environment variables > `.env`.
+Приоритет конфигурации: флаги CLI > переменные окружения > `.env`.
 
-| Setting | CLI flag | Env var |
+| Настройка | Флаг CLI | Переменная окружения |
 |---|---|---|
-| Base URL | `--url` | `OPENRAG_URL` |
-| Username | `--username` | `OPENRAG_USERNAME` |
-| API key | `--api-key` | `OPENRAG_API_KEY` |
-| Request timeout (default 120s) | `--timeout` | — |
-| Suites to run | `--only` | — |
-| Report directory | `--report-dir` | — |
+| Базовый URL | `--url` | `OPENRAG_URL` |
+| Имя пользователя | `--username` | `OPENRAG_USERNAME` |
+| API-ключ | `--api-key` | `OPENRAG_API_KEY` |
+| Таймаут запроса (по умолчанию 120 с) | `--timeout` | — |
+| Наборы проверок для запуска | `--only` | — |
+| Каталог отчётов | `--report-dir` | — |
 
-## What it checks
+## Что проверяется
 
-Suites run in end-to-end order (documents are ingested before search/chat so
-retrieval has content to find):
+Наборы проверок запускаются в сквозном порядке (документы принимаются до поиска/чата, чтобы
+у поиска было содержимое для нахождения):
 
-| Suite | Checks |
+| Набор | Проверки |
 |---|---|
-| `settings` | get; update round-trip (re-sets the current chunk_size — never changes configuration) |
-| `models` | list models for openai / ollama / omniroute (unavailable providers are skipped) |
-| `documents` | ingest with wait; ingest no-wait + task polling; ingest from a file object; re-ingest same filename; delete by filename; idempotent delete of a missing file; delete by filter_id |
-| `search` | basic query (with retries for index latency); limit; score_threshold; nonsense query; unicode query |
-| `chat` | non-streaming; streaming via `create(stream=True)`; `stream()` context manager; multi-turn with chat_id; list / get / delete conversations |
-| `filters` | full CRUD; filter_id actually scopes search and chat results |
-| `errors` | NotFoundError on missing conversation; invalid settings rejected; client-side ValueErrors; bogus filter_id rejected |
+| `settings` | получить; обновление с возвратом (повторно задаёт текущий chunk_size — никогда не меняет конфигурацию) |
+| `models` | список моделей для openai / ollama / omniroute (недоступные провайдеры пропускаются) |
+| `documents` | приём с ожиданием; приём без ожидания + опрос задач; приём из файлового объекта; повторный приём того же имени файла; удаление по имени файла; идемпотентное удаление отсутствующего файла; удаление по filter_id |
+| `search` | базовый запрос (с повторами из-за задержки индекса); limit; score_threshold; бессмысленный запрос; запрос в юникоде |
+| `chat` | без потоковой передачи; потоковая передача через `create(stream=True)`; контекстный менеджер `stream()`; многоходовой диалог с chat_id; список / получение / удаление бесед |
+| `filters` | полный CRUD; filter_id действительно ограничивает результаты поиска и чата |
+| `errors` | NotFoundError для отсутствующей беседы; недопустимые настройки отклоняются; клиентские ValueError; ошибочный filter_id отклоняется |
 
-A preflight `GET /api/v1/settings` runs first. It is **non-fatal**: an HTTP
-error (e.g. `permission_denied`) is logged, recorded in the report as
-`preflight.settings_get`, and the run continues so every endpoint gets its own
-verdict. Only an unreachable host aborts the run (exit 2).
+Сначала выполняется предварительная проверка `GET /api/v1/settings`. Она **не является фатальной**: HTTP-ошибка
+(например, `permission_denied`) записывается в журнал, фиксируется в отчёте как
+`preflight.settings_get`, а запуск продолжается, чтобы каждая конечная точка получила собственный
+вердикт. Только недостижимый хост прерывает запуск (код возврата 2).
 
-Checks that depend on earlier ones (e.g. search needs an ingested document)
-are auto-skipped — not failed — when their prerequisite didn't pass.
+Проверки, зависящие от предыдущих (например, поиску нужен принятый документ),
+автоматически пропускаются — а не считаются проваленными, — когда их предпосылка не прошла.
 
-All artifacts the run creates (documents, conversations, knowledge filters)
-are deleted in a best-effort cleanup phase at the end, even on Ctrl-C.
+Все артефакты, создаваемые запуском (документы, беседы, фильтры знаний),
+удаляются на этапе очистки с максимальными усилиями в конце, даже при Ctrl-C.
 
-> Note: the integration suite's wildcard delete-by-filter test
-> (`data_sources: ["*"]` must be rejected) is intentionally omitted — if the
-> backend ever failed to reject it, it would delete every document in the
-> tenant. Not worth the risk against a live SaaS instance.
+> Примечание: тест интеграционного набора на удаление по подстановочному filter_id
+> (`data_sources: ["*"]` должно отклоняться) намеренно опущен — если бы
+> бэкенд когда-либо не отклонил его, это удалило бы каждый документ в
+> тенанте. Не стоит такого риска против работающего SaaS-экземпляра.
 
-## Report
+## Отчёт
 
-Each run prints live results to the console and writes:
+Каждый запуск печатает результаты в реальном времени в консоль и записывает:
 
-- `reports/report.json` / `reports/report.md` — latest run
-- `reports/report_<UTC timestamp>.json` / `.md` — per-run history
-- `reports/run_<UTC timestamp>.log` — full console log of the run
+- `reports/report.json` / `reports/report.md` — последний запуск
+- `reports/report_<метка времени UTC>.json` / `.md` — история по запускам
+- `reports/run_<метка времени UTC>.log` — полный консольный журнал запуска
 
-Reports include the timestamp, target URL, masked credentials, SDK version,
-and per-check status / duration / error. Exit code: `0` all passed (skips
-allowed), `1` at least one failure, `2` bad configuration or unreachable
-instance.
+Отчёты включают метку времени, целевой URL, замаскированные учётные данные, версию SDK
+и статус / длительность / ошибку для каждой проверки. Код возврата: `0` все прошли (пропуски
+допускаются), `1` как минимум одна ошибка, `2` недопустимая конфигурация или недостижимый
+экземпляр.

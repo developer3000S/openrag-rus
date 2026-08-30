@@ -5,7 +5,7 @@
 # OpenRAG
 
 <h3>
-  <em>Intelligent Agent-powered document search</em>
+  <em>Интеллектуальный поиск по документам на основе агентов</em>
 </h3>
 
 <!-- Badges -->
@@ -24,88 +24,88 @@
 
 ---
 
-OpenRAG is a comprehensive Retrieval-Augmented Generation platform that enables intelligent document search and AI-powered conversations.
+OpenRAG — это комплексная платформа генерации с дополнением знаний (Retrieval-Augmented Generation, RAG), которая обеспечивает интеллектуальный поиск по документам и диалоги на основе искусственного интеллекта.
 
-Users can upload, process, and query documents through a chat interface backed by large language models and semantic search capabilities. The system utilizes Langflow for document ingestion, retrieval workflows, and intelligent nudges, providing a seamless RAG experience.
+Пользователи могут загружать, обрабатывать и запрашивать документы через чат-интерфейс, работающий на базе больших языковых моделей и возможностей семантического поиска. Система использует Langflow для приёма документов, рабочих процессов извлечения и интеллектуальных подсказок, обеспечивая бесшовный опыт работы с RAG.
 
-Check out the [documentation](https://docs.openr.ag/) or get started with the [quickstart](https://docs.openr.ag/quickstart).
+Ознакомьтесь с [документацией](https://docs.openr.ag/) или начните с [быстрого старта](https://docs.openr.ag/quickstart).
 
-Built with [FastAPI](https://fastapi.tiangolo.com/) and [Next.js](https://github.com/vercel/next.js). 
-Powered by [OpenSearch](https://github.com/opensearch-project/OpenSearch), [Langflow](https://github.com/langflow-ai/langflow), and [Docling](https://github.com/docling-project/docling).
+Создано на основе [FastAPI](https://fastapi.tiangolo.com/) и [Next.js](https://github.com/vercel/next.js).
+Работает на базе [OpenSearch](https://github.com/opensearch-project/OpenSearch), [Langflow](https://github.com/langflow-ai/langflow) и [Docling](https://github.com/docling-project/docling).
 
 ---
 
 <div align="center">
-  <img src="./docs/static/img/openrag_readme_downsized.gif" alt="OpenRAG Demo" width="100%"/>
+  <img src="./docs/static/img/openrag_readme_downsized.gif" alt="Демонстрация OpenRAG" width="100%"/>
 </div>
 
-## ✨ Highlight Features
+## ✨ Ключевые возможности
 
-- **Pre-packaged & ready to run** - All core tools are hooked up and ready to go, just install and run
-- **Agentic RAG workflows** - Advanced orchestration with re-ranking and multi-agent coordination
-- **Document ingestion** - Handles messy, real-world data with intelligent parsing
-- **Drag-and-drop workflow builder** - Visual interface powered by Langflow for rapid iteration
-- **Modular enterprise add-ons** - Extend functionality when you need it
-- **Enterprise search at any scale** - Powered by OpenSearch for production-grade performance
+- **Упакован и готов к запуску** — Все основные инструменты подключены и готовы к работе: просто установите и запустите
+- **Агентные RAG-рабочие процессы** — Расширенная оркестрация с реранжированием и координацией нескольких агентов
+- **Приём документов** — Обрабатывает сложные реальные данные с интеллектуальным разбором
+- **Конструктор рабочих процессов перетаскиванием** — Визуальный интерфейс на базе Langflow для быстрой итерации
+- **Модульные корпоративные дополнения** — Расширяйте функциональность по мере необходимости
+- **Корпоративный поиск любого масштаба** — На базе OpenSearch для производительности производственного уровня
 
-## 🔄 How OpenRAG Works
+## 🔄 Как работает OpenRAG
 
-OpenRAG follows a streamlined workflow to transform your documents into intelligent, searchable knowledge:
+OpenRAG следует упрощённому рабочему процессу, превращая ваши документы в интеллектуальное и доступное для поиска знание:
 
 <div align="center">
-  <img src="./docs/static/img/workflow-diagram.svg" alt="OpenRAG Workflow Diagram" width="800"/>
+  <img src="./docs/static/img/workflow-diagram.svg" alt="Схема рабочего процесса OpenRAG" width="800"/>
 </div>
 
-## 🚀 Install OpenRAG
+## 🚀 Установка OpenRAG
 
-To get started with OpenRAG, see the installation guides in the OpenRAG documentation:
+Чтобы начать работу с OpenRAG, обратитесь к руководствам по установке в документации OpenRAG:
 
-* [Quickstart](https://docs.openr.ag/quickstart)
-* [Install the OpenRAG Python package](https://docs.openr.ag/install-options)
-* [Deploy self-managed services with Docker or Podman](https://docs.openr.ag/docker)
+* [Быстрый старт](https://docs.openr.ag/quickstart)
+* [Установка Python-пакета OpenRAG](https://docs.openr.ag/install-options)
+* [Развёртывание самостоятельно управляемых сервисов с помощью Docker или Podman](https://docs.openr.ag/docker)
 
-### Local Docker deployment
+### Локальное развёртывание Docker
 
-For a local Docker Compose deployment with a single command, run the helper script:
+Для локального развёртывания Docker Compose одной командой запустите вспомогательный скрипт:
 
 ```bash
 ./start-docker.sh
 ```
 
-The script injects default values for the required environment variables (OpenSearch password, `OPENRAG_ENCRYPTION_KEY`, Langflow superuser), publishes the backend on `http://localhost:${OPENRAG_BACKEND_PORT}` (default `8001` when `8000` is already in use) via the `docker-compose.backend-port.yml` override, and builds or re-tags locally built Debian-based images that also run on older CPUs without the `x86-64-v3` instruction set.
+Скрипт подставляет значения по умолчанию для обязательных переменных окружения (пароль OpenSearch, `OPENRAG_ENCRYPTION_KEY`, суперпользователь Langflow), публикует бэкенд по адресу `http://localhost:${OPENRAG_BACKEND_PORT}` (по умолчанию `8001`, если порт `8000` уже занят) через переопределение `docker-compose.backend-port.yml`, а также собирает или пере-тегирует локально собранные образы на основе Debian, которые также работают на старых процессорах без набора инструкций `x86-64-v3`.
 
-## ✨ Quick Start Workflow
+## ✨ Рабочий процесс быстрого старта
 
 <div align="center">
 
-<img src="./docs/static/img/uv_run_openrag.png" alt="Use uv run openrag to start" width="300"/>
+<img src="./docs/static/img/uv_run_openrag.png" alt="Запуск openrag с помощью uv run" width="300"/>
 
-**1. Launch OpenRAG**
-
-↓
-
-<img src="./docs/static/img/add_knowledge_openrag.png" alt="Add files or folders as knowledge" width="300"/>
-
-**2. Add Knowledge**
+**1. Запустите OpenRAG**
 
 ↓
 
-<img src="./docs/static/img/chat_openrag.png" alt="Start Chatting with your knowledge" width="700"/>
+<img src="./docs/static/img/add_knowledge_openrag.png" alt="Добавьте файлы или папки как базу знаний" width="300"/>
 
-**3. Start Chatting**
+**2. Добавьте базу знаний**
+
+↓
+
+<img src="./docs/static/img/chat_openrag.png" alt="Начните общение со своей базой знаний" width="700"/>
+
+**3. Начните общение**
 
 </div>
 
-## 📦 SDKs
+## 📦 SDK
 
-Integrate OpenRAG into your applications with our official SDKs:
+Интегрируйте OpenRAG в свои приложения с помощью официальных SDK:
 
 ### Python SDK
 ```bash
 pip install openrag-sdk
 ```
 
-**Quick Example:**
+**Краткий пример:**
 ```python
 import asyncio
 from openrag_sdk import OpenRAGClient
@@ -121,14 +121,14 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-📖 [Full Python SDK Documentation](https://pypi.org/project/openrag-sdk/)
+📖 [Полная документация Python SDK](https://pypi.org/project/openrag-sdk/)
 
 ### TypeScript/JavaScript SDK
 ```bash
 npm install openrag-sdk
 ```
 
-**Quick Example:**
+**Краткий пример:**
 ```typescript
 import { OpenRAGClient } from "openrag-sdk";
 
@@ -137,15 +137,15 @@ const response = await client.chat.create({ message: "What is RAG?" });
 console.log(response.response);
 ```
 
-📖 [Full TypeScript/JavaScript SDK Documentation](https://www.npmjs.com/package/openrag-sdk)
+📖 [Полная документация TypeScript/JavaScript SDK](https://www.npmjs.com/package/openrag-sdk)
 
-## 🔌 Model Context Protocol (MCP)
+## 🔌 Протокол контекста модели (MCP)
 
-OpenRAG ships a built-in MCP server over **streamable HTTP**, mounted on your instance at `/mcp`. Connect AI assistants like Cursor, Claude Desktop, and IBM Bob to your OpenRAG knowledge base — no subprocess and no separate install. Authenticate with the same OpenRAG API key you use for the REST API, passed via the `X-API-Key` header.
+OpenRAG поставляется со встроенным MCP-сервером на **потоковом HTTP** (streamable HTTP), смонтированным на вашем экземпляре по адресу `/mcp`. Подключайте ИИ-ассистентов, таких как Cursor, Claude Desktop и IBM Bob, к вашей базе знаний OpenRAG — без дополнительного процесса и отдельной установки. Аутентифицируйтесь тем же API-ключом OpenRAG, который вы используете для REST API, передавая его в заголовке `X-API-Key`.
 
-> **Important:** The standalone `openrag-mcp` PyPI package is deprecated. Connect your MCP client directly to the `/mcp` endpoint instead.
+> **Важно:** Отдельный PyPI-пакет `openrag-mcp` устарел. Подключайте свой MCP-клиент напрямую к конечной точке `/mcp`.
 
-**Quick Example (Cursor/Claude Desktop config):**
+**Краткий пример (конфигурация Cursor/Claude Desktop):**
 ```json
 {
   "mcpServers": {
@@ -159,16 +159,16 @@ OpenRAG ships a built-in MCP server over **streamable HTTP**, mounted on your in
 }
 ```
 
-The MCP server provides tools for RAG-enhanced chat, semantic search, document ingestion, knowledge filters, and settings management.
+MCP-сервер предоставляет инструменты для чата с RAG-усилением, семантического поиска, приёма документов, фильтров знаний и управления настройками.
 
-📖 [Full MCP Documentation](https://github.com/langflow-ai/openrag/tree/main/sdks/mcp)
+📖 [Полная документация MCP](https://github.com/langflow-ai/openrag/tree/main/sdks/mcp)
 
-## 🛠️ Development
+## 🛠️ Разработка
 
-For developers who want to [contribute to OpenRAG](https://docs.openr.ag/support/contribute) or set up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Разработчикам, которые хотят [внести вклад в OpenRAG](https://docs.openr.ag/support/contribute) или настроить среду разработки, следует обратиться к файлу [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 🛟 Troubleshooting
+## 🛟 Устранение неполадок
 
-For assistance with OpenRAG, see [Troubleshoot OpenRAG](https://docs.openr.ag/support/troubleshoot) and visit the [Discussions page](https://github.com/langflow-ai/openrag/discussions).
+За помощью по OpenRAG обратитесь к разделу [Устранение неполадок OpenRAG](https://docs.openr.ag/support/troubleshoot) и посетите страницу [Обсуждения](https://github.com/langflow-ai/openrag/discussions).
 
-To report a bug or submit a feature request, visit the [Issues page](https://github.com/langflow-ai/openrag/issues).
+Чтобы сообщить об ошибке или отправить запрос на новую возможность, посетите страницу [Issues](https://github.com/langflow-ai/openrag/issues).
