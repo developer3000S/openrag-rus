@@ -58,6 +58,14 @@ These variables are initially set during the [application onboarding process](/i
 | `LLM_MODEL` | `gpt-4o-mini` | Language model for language processing and text generation in the **Chat** feature. Can be changed after the application onboarding process. |
 | `OPENAI_API_KEY` | Not set | API key for the OpenAI model provider, which is also the default model provider. |
 | `OLLAMA_ENDPOINT` | Not set | Custom provider endpoint for the Ollama model provider. |
+| `OMNIROUTE_API_KEY` | Not set | API key for the OMNIROUTE model provider, an OpenAI-compatible proxy. |
+| `OMNIROUTE_HOST` | Not set | Base URL of the OMNIROUTE endpoint, for example `http://<host>/api/v1`. |
+| `OMNIROUTE_MODEL` | `free-stack` | Default language model served by the OMNIROUTE endpoint. |
+
+:::info OMNIROUTE provider
+OMNIROUTE is an OpenAI-compatible proxy that you host or subscribe to.
+It is available as a language model provider only (not as an embedding provider), and it can be configured in the OpenRAG **Settings** page or with the `OMNIROUTE_*` environment variables.
+:::
 
 ## Document processing settings {#document-processing-settings}
 
