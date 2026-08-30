@@ -149,6 +149,9 @@ def provider_credentials(provider: str, config=None) -> dict[str, Any]:
         else:
             api_key = getattr(provider_config, "api_key", None)
             credentials = {"api_key": api_key} if api_key else {}
+            endpoint = getattr(provider_config, "endpoint", None)
+            if endpoint:
+                credentials["api_base"] = str(endpoint)
     if key == "ollama" and credentials.get("api_base"):
         from utils.container_utils import transform_localhost_url
 
@@ -182,7 +185,12 @@ def resolve_call(
         provider = default_provider(kind, cfg)
         name = requested
     credentials = provider_credentials(provider, cfg)
-    litellm_model = f"{provider}/{name}" if provider != "openai" else name
+    # OMNIROUTE and other OpenAI-compatible gateways have no LiteLLM provider of
+    # their own; LiteLLM routes any `openai/<name>` to the `api_base` override.
+    if provider == "openai" or provider == "omniroute":
+        litellm_model = f"openai/{name}" if provider == "omniroute" else name
+    else:
+        litellm_model = f"{provider}/{name}"
     return litellm_model, provider, credentials
 
 

@@ -171,6 +171,12 @@ class OllamaProviderConfig(BaseModel):
     configured: bool
 
 
+class OmniRouteProviderConfig(BaseModel):
+    has_api_key: bool
+    endpoint: str | None
+    configured: bool
+
+
 class GenericProviderConfig(BaseModel):
     configured: bool
     credential_values: dict[str, str] = Field(default_factory=dict)
@@ -182,6 +188,7 @@ class ProvidersConfig(BaseModel):
     anthropic: AnthropicProviderConfig
     watsonx: WatsonXProviderConfig
     ollama: OllamaProviderConfig
+    omniroute: OmniRouteProviderConfig
     custom: dict[str, GenericProviderConfig] = Field(default_factory=dict)
 
 

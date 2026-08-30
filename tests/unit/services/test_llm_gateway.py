@@ -118,6 +118,43 @@ def test_provider_credentials_supports_arbitrary_litellm_provider():
     }
 
 
+def test_resolve_call_routes_omniroute_through_openai_compatible_prefix():
+    providers = ProvidersConfig(
+        openai=OpenAIConfig(),
+        anthropic=AnthropicConfig(),
+        watsonx=WatsonXConfig(),
+        ollama=OllamaConfig(),
+        custom={
+            "omniroute": GenericProviderConfig(
+                credentials={
+                    "api_key": "omni-secret",
+                    "api_base": "https://omni.internal/api/v1",
+                },
+                configured=True,
+            )
+        },
+    )
+    cfg = SimpleNamespace(
+        providers=providers,
+        agent=SimpleNamespace(llm_model="free-stack", llm_provider="omniroute"),
+        knowledge=SimpleNamespace(embedding_model="", embedding_provider="openai"),
+    )
+
+    model, provider, creds = resolve_call(None, kind="chat", config=cfg)
+    assert provider == "omniroute"
+    # LiteLLM has no "omniroute/" provider; OMNIROUTE is OpenAI-compatible, so
+    # the call goes out as openai/<model> with an api_base override.
+    assert model == "openai/free-stack"
+    assert creds == {
+        "api_key": "omni-secret",
+        "api_base": "https://omni.internal/api/v1",
+    }
+
+
+def test_split_model_id_recognises_omniroute_tag():
+    assert split_model_id("omniroute:free-stack") == ("omniroute", "free-stack")
+
+
 @pytest.mark.asyncio
 async def test_chat_completions_calls_litellm_with_config_key(monkeypatch):
     captured = {}

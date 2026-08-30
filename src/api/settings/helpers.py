@@ -8,6 +8,7 @@ Lifted verbatim from the original `src/api/settings.py` (lines 371–480 and
 1388–1455). No behavior change.
 """
 
+import os
 from datetime import UTC
 from typing import Any
 
@@ -86,6 +87,7 @@ def _default_llm_model(provider: str) -> str:
         "anthropic": ANTHROPIC_DEFAULT_LANGUAGE_MODEL,
         "watsonx": "",
         "ollama": "",
+        "omniroute": os.getenv("OMNIROUTE_MODEL", "free-stack").strip() or "free-stack",
     }.get(provider, "")
 
 

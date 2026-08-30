@@ -64,3 +64,19 @@ def test_blank_credentials_leave_an_existing_provider_untouched():
 
     assert config.providers.custom["gemini"].configured is True
     assert config.providers.credential_values("gemini") == {"api_key": "secret"}
+
+
+def test_omniroute_credentials_round_trip_as_an_openai_compatible_gateway():
+    config = OpenRAGConfig.from_dict({})
+    config.providers.set_credentials(
+        "omniroute",
+        {"api_key": "omni-secret", "api_base": "https://omni.internal/api/v1"},
+    )
+
+    loaded = OpenRAGConfig.from_dict(config.to_dict())
+
+    assert loaded.providers.custom["omniroute"].configured is True
+    assert loaded.providers.credential_values("omniroute") == {
+        "api_key": "omni-secret",
+        "api_base": "https://omni.internal/api/v1",
+    }

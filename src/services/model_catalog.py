@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
 from functools import lru_cache
 from typing import Any
 
@@ -34,7 +35,14 @@ logger = get_logger(__name__)
 
 TEXT_GENERATION_MODES = frozenset({"chat", "completion", "responses"})
 EMBEDDING_MODE = "embedding"
-SUPPORTED_PROVIDER_KEYS = frozenset({"openai", "anthropic", "watsonx", "ollama"})
+SUPPORTED_PROVIDER_KEYS = frozenset({"openai", "anthropic", "watsonx", "ollama", "omniroute"})
+
+# Providers LiteLLM has no curated cost table for. The picker still needs a
+# real, routable model to offer, so a single curated default is served instead
+# of an empty list. Keyed by provider so this stays easy to extend.
+_CURATED_CHAT_MODELS: dict[str, tuple[str, ...]] = {
+    "omniroute": (os.getenv("OMNIROUTE_MODEL", "free-stack").strip() or "free-stack",),
+}
 
 CAPABILITY_FLAGS: dict[str, str] = {
     "supports_function_calling": "function_calling",
@@ -221,6 +229,14 @@ def _catalog() -> dict[str, Any]:
             continue
         bucket.setdefault(provider, []).append(_model_entry(name, info))
 
+    # Providers with no LiteLLM cost table still surface their curated default
+    # so the picker offers a routable model instead of an empty panel.
+    for provider, names in _CURATED_CHAT_MODELS.items():
+        if provider not in chat_by_provider:
+            chat_by_provider[provider] = [
+                {"model": name, "mode": "chat"} for name in names if name
+            ]
+
     providers = []
     for key in sorted(SUPPORTED_PROVIDER_KEYS):
         providers.append(
@@ -266,10 +282,17 @@ def catalog(today: datetime.date | None = None) -> dict[str, Any]:
 
 
 def is_known_provider(provider: str) -> bool:
-    """Whether LiteLLM recognises `provider` at all."""
+    """Whether LiteLLM recognises `provider` at all.
+
+    OpenRAG-first-class providers count even though LiteLLM has no native
+    provider of that name: their credentials carry an OpenAI-compatible
+    `api_base`, and the LLM gateway routes them through the `openai/` prefix.
+    """
     key = (provider or "").strip().lower()
     if not key:
         return False
+    if key in SUPPORTED_PROVIDER_KEYS:
+        return True
     try:
         import litellm
 

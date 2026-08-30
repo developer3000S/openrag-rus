@@ -8,6 +8,7 @@ export type ModelProvider =
   | "anthropic"
   | "ollama"
   | "watsonx"
+  | "omniroute"
   | "local";
 
 // Full ordered list of providers for settings / cards
@@ -16,6 +17,7 @@ export const ALL_PROVIDERS: ModelProvider[] = [
   "ollama",
   "watsonx",
   "anthropic",
+  "omniroute",
 ];
 
 // Preferred auto-select order for the LLM onboarding step
@@ -24,6 +26,7 @@ export const LLM_PROVIDER_ORDER: ModelProvider[] = [
   "openai",
   "watsonx",
   "ollama",
+  "omniroute",
 ];
 
 // Preferred auto-select order for the embedding onboarding step
@@ -52,6 +55,23 @@ export function getModelLogo(modelValue: string, provider?: string) {
     return <OllamaLogo className="w-4 h-4" />;
   } else if (provider === "watsonx") {
     return <IBMLogo className="w-4 h-4" />;
+  } else if (provider === "omniroute") {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-4 h-4 text-muted-foreground"
+      >
+        <circle cx="6" cy="19" r="3" />
+        <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+        <circle cx="18" cy="5" r="3" />
+      </svg>
+    );
   } else if (provider === "local") {
     return (
       <svg
@@ -187,6 +207,11 @@ export function getFallbackModels(provider: ModelProvider) {
     case "watsonx":
       // No stable static IDs — live list is required for watsonx.
       return { language: [], embedding: [] };
+    case "omniroute":
+      return {
+        language: [{ value: "free-stack", label: "free-stack" }],
+        embedding: [],
+      };
     default:
       return {
         language: [

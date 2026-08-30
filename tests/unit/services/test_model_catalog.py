@@ -85,6 +85,20 @@ def test_is_known_provider_accepts_litellm_handlers() -> None:
     assert not model_catalog.is_known_provider("")
 
 
+def test_omniroute_is_a_known_provider_with_a_curated_default_model() -> None:
+    """OMNIROUTE has no LiteLLM cost table, so the picker gets a curated model."""
+    assert model_catalog.is_known_provider("omniroute")
+
+    providers = {entry["key"]: entry for entry in model_catalog.catalog()["providers"]}
+    assert "omniroute" in providers
+    assert providers["omniroute"]["models"] == [{"model": "free-stack", "mode": "chat"}]
+    assert providers["omniroute"]["embedding_models"] == []
+    assert [field["key"] for field in providers["omniroute"]["credential_fields"]] == [
+        "api_key",
+        "api_base",
+    ]
+
+
 def test_exported_model_ids_route_back_to_their_owner() -> None:
     """A `/v1/models` id must resolve to the provider that owns it.
 

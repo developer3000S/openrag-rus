@@ -525,6 +525,23 @@ class ConfigManager:
         if os.getenv("OLLAMA_ENDPOINT"):
             config_data["providers"]["ollama"]["endpoint"] = os.getenv("OLLAMA_ENDPOINT")
 
+        # OMNIROUTE provider settings — an OpenAI-compatible proxy (api_base +
+        # api_key). Seeded as a custom provider so it works without a config
+        # file; values survive a round trip through save_config_file.
+        omni_key = os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"')
+        omni_host = os.getenv("OMNIROUTE_HOST", "").strip().strip('"')
+        if omni_key or omni_host:
+            custom_providers = config_data["providers"].setdefault("custom", {})
+            omni = dict(custom_providers.setdefault("omniroute", {}))
+            credentials = dict(omni.get("credentials") or {})
+            if omni_key:
+                credentials["api_key"] = omni_key
+            if omni_host:
+                credentials["api_base"] = omni_host
+            omni["credentials"] = credentials
+            omni["configured"] = True
+            custom_providers["omniroute"] = omni
+
         # Knowledge settings
         if os.getenv("EMBEDDING_MODEL"):
             config_data["knowledge"]["embedding_model"] = os.getenv("EMBEDDING_MODEL")

@@ -51,6 +51,11 @@ export interface ProviderSettings {
     endpoint?: string;
     configured?: boolean;
   };
+  omniroute?: {
+    has_api_key?: boolean;
+    endpoint?: string;
+    configured?: boolean;
+  };
   local?: {
     configured?: boolean;
   };

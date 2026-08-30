@@ -53,6 +53,7 @@ const providerTitleMap: Record<ModelProvider, string> = {
   anthropic: "Anthropic",
   ollama: "Ollama",
   watsonx: "IBM watsonx.ai",
+  omniroute: "OMNIROUTE",
   local: "Local",
 };
 

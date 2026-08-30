@@ -42,6 +42,7 @@ from api.settings.models import (
     IngestionDefaultsConfig,
     KnowledgeConfig,
     OllamaProviderConfig,
+    OmniRouteProviderConfig,
     OnboardingBody,
     OnboardingResponse,
     OnboardingStateBody,
@@ -190,6 +191,21 @@ def _custom_providers_for_settings(openrag_config) -> dict[str, GenericProviderC
     return providers
 
 
+def _omniroute_provider_for_settings(openrag_config) -> OmniRouteProviderConfig:
+    """Public payload for the OMNIROUTE (OpenAI-compatible) provider.
+
+    Stored as a custom provider entry carrying `api_key`/`api_base`; the
+    first-class slot exists so the settings UI can render a dedicated card.
+    """
+    stored = openrag_config.providers.custom.get("omniroute")
+    credentials = stored.credentials if stored else {}
+    return OmniRouteProviderConfig(
+        has_api_key=bool(credentials.get("api_key")),
+        endpoint=credentials.get("api_base") or None,
+        configured=bool(stored and stored.configured),
+    )
+
+
 def _detect_local_vlm_models() -> list[str]:
     from pathlib import Path
 
@@ -332,6 +348,7 @@ async def get_settings(
                     endpoint=openrag_config.providers.ollama.endpoint or None,
                     configured=openrag_config.providers.ollama.configured,
                 ),
+                omniroute=_omniroute_provider_for_settings(openrag_config),
                 custom=_custom_providers_for_settings(openrag_config),
             )
             if show_providers
