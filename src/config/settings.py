@@ -1005,7 +1005,7 @@ class AppClients:
         self.langflow_client = None
         self.langflow_http_client = None
         self._patched_async_client = None  # Private attribute - single client for all providers
-        self._client_init_lock = threading.Lock()  # Lock for thread-safe initialization
+        self._docling_init_lock = threading.Lock()  # Lock for thread-safe docling init only
         self.docling_http_client = None
         self._docling_service = None
 
@@ -1157,79 +1157,77 @@ class AppClients:
         3. Hard error — no LLM provider configured
 
         Note: The client is a long-lived singleton that should be closed via cleanup().
-        Thread-safe via lock to prevent concurrent initialization attempts.
         """
-        # Quick check without lock
+        # Quick check without lock — the async client is process-local and the
+        # underlying openai client lazily creates its own httpx transport, so
+        # the double-checked pattern is safe without holding a threading.Lock.
+        # Using threading.Lock here would deadlock when this property is read
+        # from inside an active asyncio event loop (Python 3.13 surfaces this
+        # as "deadlock detected by _ModuleLock").
         if self._patched_async_client is not None:
             return self._patched_async_client
 
-        # Use lock to ensure only one thread initializes
-        with self._client_init_lock:
-            # Double-check after acquiring lock
-            if self._patched_async_client is not None:
-                return self._patched_async_client
+        try:
+            config = get_openrag_config()
+        except Exception as e:
+            logger.debug("Could not load config for LLM client init", error=str(e))
+            config = None
 
-            try:
-                config = get_openrag_config()
-            except Exception as e:
-                logger.debug("Could not load config for LLM client init", error=str(e))
-                config = None
+        # ---- Resolve LLM base_url / api_key ----
+        _base_url = None
+        _api_key = "no-key-required"  # placeholder, ignored by OMNIROUTE/Ollama
 
-            # ---- Resolve LLM base_url / api_key ----
-            _base_url = None
-            _api_key = "no-key-required"  # placeholder, ignored by OMNIROUTE/Ollama
+        omni_key = os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"')
+        omni_host = os.getenv("OMNIROUTE_HOST", "").strip().strip('"')
 
-            omni_key = os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"')
-            omni_host = os.getenv("OMNIROUTE_HOST", "").strip().strip('"')
+        if omni_key and omni_host:
+            # OMNIROUTE — primary
+            _base_url = omni_host
+            _api_key = omni_key
+            os.environ["OMNIROUTE_API_KEY"] = omni_key
+            os.environ["OMNIROUTE_BASE_URL"] = omni_host
+            logger.info("LLM client routing to OMNIROUTE", host=omni_host)
+        else:
+            # Ollama — fallback
+            ollama_endpoint = (
+                os.getenv("OLLAMA_ENDPOINT", "").strip()
+                or os.getenv("OLLAMA_BASE_URL", "").strip()
+                or (config.providers.ollama.endpoint if config else "")
+            )
+            if ollama_endpoint:
+                from utils.container_utils import transform_localhost_url
 
-            if omni_key and omni_host:
-                # OMNIROUTE — primary
-                _base_url = omni_host
-                _api_key = omni_key
-                os.environ["OMNIROUTE_API_KEY"] = omni_key
-                os.environ["OMNIROUTE_BASE_URL"] = omni_host
-                logger.info("LLM client routing to OMNIROUTE", host=omni_host)
+                _base_url = transform_localhost_url(ollama_endpoint).rstrip("/") + "/v1"
+                _api_key = "ollama"
+                os.environ["OLLAMA_BASE_URL"] = ollama_endpoint
+                os.environ["OLLAMA_ENDPOINT"] = ollama_endpoint
+                logger.info("LLM client routing to Ollama", endpoint=_base_url)
             else:
-                # Ollama — fallback
-                ollama_endpoint = (
-                    os.getenv("OLLAMA_ENDPOINT", "").strip()
-                    or os.getenv("OLLAMA_BASE_URL", "").strip()
-                    or (config.providers.ollama.endpoint if config else "")
-                )
-                if ollama_endpoint:
-                    from utils.container_utils import transform_localhost_url
-
-                    _base_url = transform_localhost_url(ollama_endpoint).rstrip("/") + "/v1"
-                    _api_key = "ollama"
-                    os.environ["OLLAMA_BASE_URL"] = ollama_endpoint
-                    os.environ["OLLAMA_ENDPOINT"] = ollama_endpoint
-                    logger.info("LLM client routing to Ollama", endpoint=_base_url)
-                else:
-                    raise ValueError(
-                        "No LLM provider configured. Set OMNIROUTE_API_KEY + "
-                        "OMNIROUTE_HOST (primary) or OLLAMA_ENDPOINT (fallback) "
-                        "in your environment."
-                    )
-
-            # ---- Initialize the HTTP/1.1 client ----
-            try:
-                http_client = httpx.AsyncClient(
-                    http2=False, timeout=httpx.Timeout(60.0, connect=10.0)
-                )
-                self._patched_async_client = patch_openai_with_mcp(
-                    AsyncOpenAI(api_key=_api_key, base_url=_base_url, http_client=http_client)
-                )
-                logger.info(f"LLM client initialized (base_url={_base_url})")
-            except Exception as e:
-                logger.error(
-                    f"Failed to initialize LLM client: {e.__class__.__name__}: {str(e)}"
-                )
                 raise ValueError(
-                    f"Failed to initialize LLM client: {str(e)}. "
-                    "Check OMNIROUTE_API_KEY/OMNIROUTE_HOST or OLLAMA_ENDPOINT."
-                ) from e
+                    "No LLM provider configured. Set OMNIROUTE_API_KEY + "
+                    "OMNIROUTE_HOST (primary) or OLLAMA_ENDPOINT (fallback) "
+                    "in your environment."
+                )
 
-            return self._patched_async_client
+        # ---- Initialize the HTTP/1.1 client ----
+        try:
+            http_client = httpx.AsyncClient(
+                http2=False, timeout=httpx.Timeout(60.0, connect=10.0)
+            )
+            self._patched_async_client = patch_openai_with_mcp(
+                AsyncOpenAI(api_key=_api_key, base_url=_base_url, http_client=http_client)
+            )
+            logger.info(f"LLM client initialized (base_url={_base_url})")
+        except Exception as e:
+            logger.error(
+                f"Failed to initialize LLM client: {e.__class__.__name__}: {str(e)}"
+            )
+            raise ValueError(
+                f"Failed to initialize LLM client: {str(e)}. "
+                "Check OMNIROUTE_API_KEY/OMNIROUTE_HOST or OLLAMA_ENDPOINT."
+            ) from e
+
+        return self._patched_async_client
 
     @property
     def patched_llm_client(self):
@@ -1260,7 +1258,7 @@ class AppClients:
             return self._docling_service
 
         # Use lock to ensure only one thread initializes
-        with self._client_init_lock:
+        with self._docling_init_lock:
             # Double-check after acquiring lock
             if self._docling_service is not None:
                 return self._docling_service
