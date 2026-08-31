@@ -1,5 +1,21 @@
 # Скрипты OpenRAG
 
+## Полное удаление локальной установки (`uninstall.py`)
+
+`uninstall.py` — единая точка очистки локального окружения разработки.
+Удаляет артефакты Python (виртуальное окружение, кэши, egg-info,
+`__pycache__`) и, опционально, Docker-ресурсы OpenRAG.
+
+```bash
+python3 scripts/uninstall.py --dry-run         # только показать, что будет удалено
+python3 scripts/uninstall.py --force           # файлы, без подтверждения
+python3 scripts/uninstall.py --with-docker     # также docker compose down -v + image prune
+python3 scripts/uninstall.py --with-docker --force  # + удалить образы langflowai/openrag*, langflow/langflow, opensearchproject/opensearch*
+```
+
+Скрипт сам пропускает Docker-шаги, если демон не запущен. Не трогает
+`.env` и любые данные за пределами compose-томов.
+
 ## Массовая загрузка (`openrag_bulk.py`)
 
 `openrag_bulk.py` — автономный клиент для загрузки каталога или набора

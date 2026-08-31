@@ -359,6 +359,23 @@ make factory-reset  # Полный сброс: контейнеры, тома и
 
 Сброс также удаляет любые устаревшие каталоги `opensearch-data`, чтобы старые файлы индексов OpenSearch не оставались после очистки.
 
+### Удаление локальной установки (`scripts/uninstall.py`)
+
+> [!CAUTION]
+> Удаляет виртуальное окружение, кэши, артефакты сборки и (с `--with-docker`) Docker-ресурсы. Используйте, когда хотите полностью очистить локальную установку, не затрагивая `.env`.
+
+```bash
+python3 scripts/uninstall.py --dry-run       # Показать, что будет удалено
+python3 scripts/uninstall.py                # Удалить файлы (с подтверждением)
+python3 scripts/uninstall.py --force         # Удалить файлы без подтверждения
+python3 scripts/uninstall.py --with-docker   # Также остановить контейнеры и удалить тома
+python3 scripts/uninstall.py --with-docker --force  # + удалить Docker-образы OpenRAG
+```
+
+Что удаляется по умолчанию: `.venv/`, `src/openrag.egg-info/`, все `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`, `.mypy_cache/`, `build/`, `dist/`, байткод SDK.
+
+С `--with-docker` дополнительно выполняются `docker compose down -v --remove-orphans` (и для каждого существующего `docker-compose.*.yml` override), `docker image prune -f`, а с `--force` — удаление образов с префиксами `langflowai/openrag*`, `langflow/langflow`, `opensearchproject/opensearch*`. Скрипт автоматически пропускает Docker-шаги, если демон не запущен.
+
 ---
 
 ## Система справки Makefile
