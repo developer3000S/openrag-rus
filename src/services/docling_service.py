@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from config.settings import (
     DOCLING_ERROR_DETAIL_MAX_LENGTH,
+    DOCLING_POLL_MAX_SECONDS,
     DOCLING_SERVE_URL,
     DOCLING_SERVE_VERIFY_SSL,
     get_openrag_config,
@@ -307,13 +308,20 @@ class DoclingService:
         self,
         task_id: str,
         poll_interval: float = 1.0,
-        timeout: float = 600.0,
+        timeout: float | None = None,
         user_id: str | None = None,
         auth_header: str | None = None,
     ) -> dict[str, Any]:
         """
         Poll Docling Serve for the result of an async conversion task.
+
+        ``timeout`` defaults to ``DOCLING_POLL_MAX_SECONDS`` (env
+        ``DOCLING_POLL_MAX_SECONDS``, default 1800s) so that short,
+        hard-coded waits don't kill long-running conversions before the
+        configured backend-side polling budget expires.
         """
+        if timeout is None:
+            timeout = DOCLING_POLL_MAX_SECONDS
         client = self._get_client()
         should_close = client != self.httpx_client
 
