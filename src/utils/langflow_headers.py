@@ -132,7 +132,13 @@ def build_model_provider_headers(config, embedding_model: str | None = None) -> 
 
     return {
         "X-LANGFLOW-GLOBAL-VAR-SELECTED_EMBEDDING_MODEL": str(emb_model or ""),
-        "X-LANGFLOW-GLOBAL-VAR-SELECTED_EMBEDDING_MODEL_PROVIDER": "OpenAI",
+        "X-LANGFLOW-GLOBAL-VAR-SELECTED_EMBEDDING_MODEL_PROVIDER": str(
+            getattr(getattr(config, "knowledge", None), "embedding_provider", None)
+            or "omniroute"
+        ),
         "X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL": str(llm_model or ""),
-        "X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL_PROVIDER": "OpenAI",
+        "X-LANGFLOW-GLOBAL-VAR-SELECTED_LANGUAGE_MODEL_PROVIDER": str(
+            getattr(getattr(config, "agent", None), "llm_provider", None)
+            or "omniroute"
+        ),
     }

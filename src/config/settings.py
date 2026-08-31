@@ -12,7 +12,7 @@ from openai import AsyncOpenAI
 from opensearchpy import AsyncOpenSearch
 from opensearchpy._async.http_aiohttp import AIOHttpConnection
 
-from config.embedding_constants import OPENAI_DEFAULT_EMBEDDING_MODEL
+# OPENAI_DEFAULT_EMBEDDING_MODEL removed — OMNIROUTE/Ollama are the only providers
 from config.paths import get_flows_path
 from utils.container_utils import determine_docling_host, get_container_host
 from utils.embedding_fields import build_knn_vector_field
@@ -1049,19 +1049,16 @@ class AppClients:
                 pool_maxsize=OPENSEARCH_POOL_MAXSIZE,
             )
 
-        # Initialize patched OpenAI client if API key is available
-        # This allows the app to start even if OPENAI_API_KEY is not set yet
-        # (e.g., when it will be provided during onboarding)
-        # The property will handle lazy initialization with probe when first accessed
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if openai_key:
-            logger.info(
-                "OpenAI API key found in environment - will be initialized lazily on first use with HTTP/2 probe"
-            )
+        # Initialize the patched LLM client. OpenAI is no longer supported —
+        # the client is configured for OMNIROUTE (primary) or Ollama (fallback)
+        # when first accessed. Both providers are OpenAI-compatible HTTP APIs,
+        # so the OpenAI Python SDK works as a transport.
+        omni_key = os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"')
+        omni_host = os.getenv("OMNIROUTE_HOST", "").strip().strip('"')
+        if omni_key and omni_host:
+            logger.info("OMNIROUTE credentials present — LLM client will use OMNIROUTE")
         else:
-            logger.info(
-                "OpenAI API key not found in environment - will be initialized on first use if needed"
-            )
+            logger.info("OMNIROUTE not configured — LLM client will use Ollama fallback")
 
         # Initialize docling-serve HTTP client for document conversion
         self.docling_http_client = httpx.AsyncClient(
@@ -1147,11 +1144,17 @@ class AppClients:
     @property
     def patched_async_client(self):
         """
-        Property that ensures OpenAI client is initialized on first access.
-        This allows lazy initialization so the app can start without an API key.
+        Property that ensures the LLM client is initialized on first access.
 
-        The client is patched with LiteLLM support to handle multiple providers.
-        All provider credentials are loaded into environment for LiteLLM routing.
+        OpenAI is no longer supported. The client targets OMNIROUTE (primary)
+        or Ollama (fallback) by setting `base_url` on the OpenAI-compatible
+        SDK. The SDK works fine against any OpenAI-compatible HTTP endpoint,
+        so we keep using it as a transport.
+
+        Priority:
+        1. OMNIROUTE (env: OMNIROUTE_API_KEY + OMNIROUTE_HOST)
+        2. Ollama (env: OLLAMA_ENDPOINT or config.ollama.endpoint)
+        3. Hard error — no LLM provider configured
 
         Note: The client is a long-lived singleton that should be closed via cleanup().
         Thread-safe via lock to prevent concurrent initialization attempts.
@@ -1166,121 +1169,64 @@ class AppClients:
             if self._patched_async_client is not None:
                 return self._patched_async_client
 
-            # Load all provider credentials into environment for LiteLLM
-            # LiteLLM routes based on model name prefixes (openai/, ollama/, etc.)
             try:
                 config = get_openrag_config()
-
-                # Set OpenAI credentials
-                if config.providers.openai.api_key:
-                    os.environ["OPENAI_API_KEY"] = config.providers.openai.api_key
-                    logger.debug("Loaded OpenAI API key from config")
-                elif not os.environ.get("OPENAI_API_KEY"):
-                    # Provide dummy key to satisfy AsyncOpenAI constructor;
-                    # LiteLLM/MCP will handle routing to other providers if needed.
-                    os.environ["OPENAI_API_KEY"] = "no-key-required"
-                    logger.debug("Using dummy OpenAI API key to satisfy client constructor")
-
-                # Set Ollama endpoint
-                if config.providers.ollama.endpoint:
-                    os.environ["OLLAMA_BASE_URL"] = config.providers.ollama.endpoint
-                    os.environ["OLLAMA_ENDPOINT"] = config.providers.ollama.endpoint
-                    logger.debug("Loaded Ollama endpoint from config")
-
-                # Determine model and provider for both probe and production client
-                model_name = config.knowledge.embedding_model or OPENAI_DEFAULT_EMBEDDING_MODEL
-                provider = config.knowledge.embedding_provider or "openai"
             except Exception as e:
-                logger.debug("Could not load provider credentials from config", error=str(e))
-                # Provide fallbacks if config loading failed
-                model_name = OPENAI_DEFAULT_EMBEDDING_MODEL
-                provider = "openai"
-                # Ensure a dummy key is available to satisfy the AsyncOpenAI constructor
-                # and avoid AuthenticationError if config loading failed.
-                if not os.environ.get("OPENAI_API_KEY"):
-                    os.environ["OPENAI_API_KEY"] = "no-key-required"
-                    logger.debug("Using dummy OpenAI API key fallback (config load failed)")
+                logger.debug("Could not load config for LLM client init", error=str(e))
+                config = None
 
-            # API key for AsyncOpenAI constructor
-            api_key = os.environ.get("OPENAI_API_KEY")
+            # ---- Resolve LLM base_url / api_key ----
+            _base_url = None
+            _api_key = "no-key-required"  # placeholder, ignored by OMNIROUTE/Ollama
 
-            async def probe_http2():
-                """Returns True if HTTP/2 works, False to fall back to HTTP/1.1.
+            omni_key = os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"')
+            omni_host = os.getenv("OMNIROUTE_HOST", "").strip().strip('"')
 
-                Closes the probe client before returning so all connections are
-                drained within the probe thread's event loop.  The actual
-                production client is created after this thread exits, in the
-                caller's event loop, avoiding cross-loop SSL transport errors.
-                """
-                # Use a standard OpenAI client for the probe (only runs for OpenAI provider)
-                client = AsyncOpenAI(api_key=api_key)
-                logger.info(f"Probing client with HTTP/2 using model {model_name}...")
-                try:
-                    await asyncio.wait_for(
-                        client.embeddings.create(model=model_name, input=["test"]), timeout=5.0
+            if omni_key and omni_host:
+                # OMNIROUTE — primary
+                _base_url = omni_host
+                _api_key = omni_key
+                os.environ["OMNIROUTE_API_KEY"] = omni_key
+                os.environ["OMNIROUTE_BASE_URL"] = omni_host
+                logger.info("LLM client routing to OMNIROUTE", host=omni_host)
+            else:
+                # Ollama — fallback
+                ollama_endpoint = (
+                    os.getenv("OLLAMA_ENDPOINT", "").strip()
+                    or os.getenv("OLLAMA_BASE_URL", "").strip()
+                    or (config.providers.ollama.endpoint if config else "")
+                )
+                if ollama_endpoint:
+                    from utils.container_utils import transform_localhost_url
+
+                    _base_url = transform_localhost_url(ollama_endpoint).rstrip("/") + "/v1"
+                    _api_key = "ollama"
+                    os.environ["OLLAMA_BASE_URL"] = ollama_endpoint
+                    os.environ["OLLAMA_ENDPOINT"] = ollama_endpoint
+                    logger.info("LLM client routing to Ollama", endpoint=_base_url)
+                else:
+                    raise ValueError(
+                        "No LLM provider configured. Set OMNIROUTE_API_KEY + "
+                        "OMNIROUTE_HOST (primary) or OLLAMA_ENDPOINT (fallback) "
+                        "in your environment."
                     )
-                    logger.info(f"HTTP/2 probe successful with {model_name}")
-                    return True
-                except (TimeoutError, Exception) as probe_error:
-                    logger.warning(
-                        f"HTTP/2 probe failed with {model_name}, falling back to HTTP/1.1",
-                        error=str(probe_error),
-                    )
-                    return False
-                finally:
-                    # Always close the probe client so its connections are fully
-                    # torn down before the thread's event loop is closed.
-                    try:
-                        await client.close()
-                    except Exception:
-                        pass
 
-            def run_probe_in_thread():
-                """Run the async probe in a new thread with its own event loop"""
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    return loop.run_until_complete(probe_http2())
-                finally:
-                    loop.close()
-
+            # ---- Initialize the HTTP/1.1 client ----
             try:
-                # Run the probe only for OpenAI provider; local and other providers
-                # (Ollama) typically use HTTP/1.1 for reliability.
-                if provider.lower() == "openai":
-                    # Run the probe in a separate thread with its own event loop.
-                    # Only the probe result (bool) crosses the thread boundary;
-                    # the production client is created here so its connections are
-                    # bound to the caller's event loop, not the (now closed) probe loop.
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(run_probe_in_thread)
-                        use_http2 = future.result(timeout=15)
-                else:
-                    use_http2 = False
-                    logger.debug(f"Skipping HTTP/2 probe for provider: {provider}")
-
-                if use_http2:
-                    self._patched_async_client = patch_openai_with_mcp(AsyncOpenAI(api_key=api_key))
-                    logger.info(
-                        f"OpenAI-compatible client initialized with HTTP/2 (model: {model_name})"
-                    )
-                else:
-                    http_client = httpx.AsyncClient(
-                        http2=False, timeout=httpx.Timeout(60.0, connect=10.0)
-                    )
-                    self._patched_async_client = patch_openai_with_mcp(
-                        AsyncOpenAI(api_key=api_key, http_client=http_client)
-                    )
-                    logger.info(
-                        f"OpenAI-compatible client initialized with HTTP/1.1 fallback (model: {model_name})"
-                    )
-                logger.info("Successfully initialized OpenAI client")
+                http_client = httpx.AsyncClient(
+                    http2=False, timeout=httpx.Timeout(60.0, connect=10.0)
+                )
+                self._patched_async_client = patch_openai_with_mcp(
+                    AsyncOpenAI(api_key=_api_key, base_url=_base_url, http_client=http_client)
+                )
+                logger.info(f"LLM client initialized (base_url={_base_url})")
             except Exception as e:
                 logger.error(
-                    f"Failed to initialize OpenAI client: {e.__class__.__name__}: {str(e)}"
+                    f"Failed to initialize LLM client: {e.__class__.__name__}: {str(e)}"
                 )
                 raise ValueError(
-                    f"Failed to initialize OpenAI client: {str(e)}. Please complete onboarding or set OPENAI_API_KEY environment variable."
+                    f"Failed to initialize LLM client: {str(e)}. "
+                    "Check OMNIROUTE_API_KEY/OMNIROUTE_HOST or OLLAMA_ENDPOINT."
                 ) from e
 
             return self._patched_async_client

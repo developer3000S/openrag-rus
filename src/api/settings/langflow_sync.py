@@ -32,7 +32,7 @@ _background_tasks: set[asyncio.Task] = set()
 LANGFLOW_CREDENTIAL_GLOBAL_VARIABLES = frozenset(
     {
         "JWT",
-        "OPENAI_API_KEY",
+        "OMNIROUTE_API_KEY",
         "OPENRAG_LLM_TOKEN",
         "OPENSEARCH_PASSWORD",
     }
@@ -100,11 +100,11 @@ def _required_generic_global_values(config) -> dict[str, str]:
         or "documents",
         "OPENSEARCH_URL": settings.get_langflow_opensearch_url(),
         "SELECTED_EMBEDDING_MODEL": _string_value(getattr(knowledge, "embedding_model", None))
-        or "text-embedding-3-small",
-        "SELECTED_EMBEDDING_MODEL_PROVIDER": "OpenAI",
+        or "",
+        "SELECTED_EMBEDDING_MODEL_PROVIDER": getattr(knowledge, "embedding_provider", "omniroute"),
         "SELECTED_LANGUAGE_MODEL": _string_value(getattr(agent, "llm_model", None))
-        or "gpt-4o-mini",
-        "SELECTED_LANGUAGE_MODEL_PROVIDER": "OpenAI",
+        or "",
+        "SELECTED_LANGUAGE_MODEL_PROVIDER": getattr(agent, "llm_provider", "omniroute"),
     }
 
 
@@ -284,17 +284,24 @@ async def _update_langflow_global_variables(config, flows_service=None):
 
     await _safe_upsert("OPENRAG_LLM_BASE_URL", settings.get_langflow_llm_base_url())
 
-    # Every model runs through the OpenAI-compatible LLM proxy, so the provider
-    # is always "OpenAI" here and no provider secret is pushed to Langflow.
+    # Every model runs through the OpenAI-compatible LLM proxy (OMNIROUTE
+    # primary, Ollama fallback). The provider tag reflects the actual
+    # configured provider so Langflow flows can pick the right connection.
     knowledge = getattr(config, "knowledge", None)
     if getattr(knowledge, "embedding_model", None):
         await _safe_upsert("SELECTED_EMBEDDING_MODEL", config.knowledge.embedding_model)
-    await _safe_upsert("SELECTED_EMBEDDING_MODEL_PROVIDER", "OpenAI")
+    await _safe_upsert(
+        "SELECTED_EMBEDDING_MODEL_PROVIDER",
+        getattr(knowledge, "embedding_provider", None) or "omniroute",
+    )
 
     agent = getattr(config, "agent", None)
     if getattr(agent, "llm_model", None):
         await _safe_upsert("SELECTED_LANGUAGE_MODEL", config.agent.llm_model)
-    await _safe_upsert("SELECTED_LANGUAGE_MODEL_PROVIDER", "OpenAI")
+    await _safe_upsert(
+        "SELECTED_LANGUAGE_MODEL_PROVIDER",
+        getattr(agent, "llm_provider", None) or "omniroute",
+    )
 
     # Runtime headers overwrite these with the hop token on each Langflow run;
     # they only need to exist and stay non-empty so load_from_db can resolve them.

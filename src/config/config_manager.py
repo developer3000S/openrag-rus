@@ -212,7 +212,7 @@ class KnowledgeConfig:
     """Knowledge/ingestion configuration."""
 
     embedding_model: str = ""
-    embedding_provider: str = "openai"  # Which provider to use for embeddings
+    embedding_provider: str = "omniroute"  # Which provider to use for embeddings
     chunk_size: int = 1000
     chunk_overlap: int = 200
     table_structure: bool = True
@@ -222,7 +222,7 @@ class KnowledgeConfig:
     disable_ingest_with_langflow: bool = False
     # Docling VLM pipeline. Credentials come from ProvidersConfig — never stored here.
     vlm_enabled: bool = False
-    vlm_provider: str = "openai"  # "openai" | "local" | "ollama"
+    vlm_provider: str = "ollama"  # "ollama" | "local" | "omniroute"
     vlm_model: str = ""  # e.g. "gpt-4o" or a local model id
     vlm_prompt: str = (
         "Extract ALL the text from the page, ensuring no words are omitted, "
@@ -245,7 +245,7 @@ class AgentConfig:
     """Agent configuration."""
 
     llm_model: str = ""
-    llm_provider: str = "openai"  # Which provider to use for LLM
+    llm_provider: str = "omniroute"  # Which provider to use for LLM
     system_prompt: str = DEFAULT_SYSTEM_PROMPT
 
     def __post_init__(self):
@@ -517,6 +517,8 @@ class ConfigManager:
             config_data["agent"]["llm_model"] = os.getenv("LLM_MODEL")
         if os.getenv("LLM_PROVIDER"):
             config_data["agent"]["llm_provider"] = os.getenv("LLM_PROVIDER")
+        elif os.getenv("OMNIROUTE_API_KEY", "").strip().strip('"') and not config_data["agent"].get("llm_provider"):
+            config_data["agent"]["llm_provider"] = "omniroute"
         if os.getenv("SYSTEM_PROMPT"):
             config_data["agent"]["system_prompt"] = os.getenv("SYSTEM_PROMPT")
 
